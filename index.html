@@ -1586,13 +1586,23 @@ function mostrarErrorFirestore(contexto,e){
 }
 // Actualiza el indicador "Conectado · Firebase" de la pantalla de selección de proyectos
 // según si la conexión a Firestore realmente funcionó o no.
+// Versión de este archivo — sirve para confirmar que el navegador está
+// cargando la versión más reciente (y no una copia vieja en caché).
+const APP_BUILD = '2026-06-12-firestore-json-v2';
+console.log('APP_BUILD:', APP_BUILD);
+
 function marcarFirebaseConectado(){
   const dot=document.getElementById('fbDot'), txt=document.getElementById('fbText');
   if(dot){dot.style.background='var(--green)';}
-  if(txt){txt.textContent='Conectado · Firebase';}
+  if(txt){txt.textContent='Conectado · Firebase ('+APP_BUILD+')';}
   const dot2=document.getElementById('fbDot2'), st2=document.getElementById('fbStatus2');
   if(dot2){dot2.style.background='var(--green)';}
-  if(st2){st2.title='Conectado · Firebase';}
+  if(st2){st2.title='Conectado · Firebase ('+APP_BUILD+')';}
+}
+function marcarFirebaseGuardando(){
+  const dot2=document.getElementById('fbDot2'), st2=document.getElementById('fbStatus2');
+  if(dot2){dot2.style.background='var(--warn)';}
+  if(st2){st2.title='Guardando...';}
 }
 function marcarFirebaseDesconectado(){
   const dot=document.getElementById('fbDot'), txt=document.getElementById('fbText');
@@ -1751,9 +1761,10 @@ cargarUsuariosDesdeFirestore();
 // Guarda la lista COMPLETA de usuarios en un solo documento (como JSON),
 // que es más confiable que escribir un documento por usuario.
 function guardarUsuariosEnFirestore(){
+  marcarFirebaseGuardando();
   db.collection('usuarios').doc('lista').set({valor: JSON.stringify(USUARIOS)})
-    .then(()=>{ mostrarToast('✓ Usuarios guardados online',true); marcarFirebaseConectado(); })
-    .catch(e=>{ mostrarErrorFirestore('guardar usuarios',e); mostrarToast('✗ No se guardó online',false); });
+    .then(()=>{ marcarFirebaseConectado(); })
+    .catch(e=>{ mostrarErrorFirestore('guardar usuarios',e); });
 }
 // Alias retrocompatibles: cualquier cambio a un usuario guarda la lista completa.
 function guardarUsuarioEnFirestore(u){ guardarUsuariosEnFirestore(); }
@@ -1883,37 +1894,20 @@ Promise.all([usuariosListos, proyectosListos]).then(()=>{
 // Guarda el proyecto activo en Firestore (con debounce para no saturar de escrituras
 // cuando se hacen varios cambios seguidos, p.ej. crear varios registros).
 let _guardarProyectoTimeout=null;
-// Muestra un mensaje breve abajo a la derecha (verde=ok, rojo=error) para confirmar
-// si un guardado online se completó o no.
-function mostrarToast(msg,ok){
-  let t=document.getElementById('fsToast');
-  if(!t){
-    t=document.createElement('div');
-    t.id='fsToast';
-    t.style.cssText='position:fixed;bottom:16px;right:16px;z-index:99999;color:#fff;font-size:13px;padding:9px 16px;border-radius:8px;font-family:sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .3s;';
-    document.body.appendChild(t);
-  }
-  t.style.background = ok ? 'var(--green)' : 'var(--danger)';
-  t.textContent = msg;
-  t.style.opacity = '1';
-  clearTimeout(t._hideTimeout);
-  t._hideTimeout = setTimeout(()=>{ t.style.opacity='0'; }, 2500);
-}
 
 function guardarProyectoActual(){
   if(!currentProject) return;
   clearTimeout(_guardarProyectoTimeout);
+  marcarFirebaseGuardando();
   _guardarProyectoTimeout=setTimeout(()=>{
     const p=currentProject;
     if(!p) return;
     db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
       id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
     })}).then(()=>{
-      mostrarToast('✓ Guardado online',true);
       marcarFirebaseConectado();
     }).catch(e=>{
       mostrarErrorFirestore('guardar proyecto',e);
-      mostrarToast('✗ No se guardó online',false);
     });
   },800);
 }
@@ -1922,14 +1916,13 @@ function eliminarProyectoDeFirestore(id){
 }
 // Guarda inmediatamente un proyecto cualquiera (no necesariamente el activo) en Firestore.
 function guardarProyectoEnFirestore(p){
+  marcarFirebaseGuardando();
   db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
     id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
   })}).then(()=>{
-    mostrarToast('✓ Guardado online',true);
     marcarFirebaseConectado();
   }).catch(e=>{
     mostrarErrorFirestore('guardar proyecto',e);
-    mostrarToast('✗ No se guardó online',false);
   });
 }
 
