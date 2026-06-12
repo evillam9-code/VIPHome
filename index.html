@@ -1733,14 +1733,13 @@ const usuariosListos = new Promise(res=>{usuariosListosResolve=res;});
 
 async function cargarUsuariosDesdeFirestore(){
   try{
-    const snap = await db.collection('usuarios').get();
-    if(snap.empty){
+    const snap = await db.collection('usuarios').doc('lista').get();
+    if(!snap.exists){
       // Primera vez: sembrar Firestore con los usuarios por defecto
-      const batch = db.batch();
-      USUARIOS.forEach(u=>{ batch.set(db.collection('usuarios').doc(String(u.id)), u); });
-      await batch.commit();
+      await db.collection('usuarios').doc('lista').set({valor: JSON.stringify(USUARIOS)});
     } else {
-      USUARIOS = snap.docs.map(d=>d.data());
+      const val = JSON.parse(snap.data().valor);
+      if(Array.isArray(val) && val.length>0) USUARIOS = val;
     }
   }catch(e){
     mostrarErrorFirestore('cargar usuarios',e);
@@ -1749,12 +1748,16 @@ async function cargarUsuariosDesdeFirestore(){
 }
 cargarUsuariosDesdeFirestore();
 
-function guardarUsuarioEnFirestore(u){
-  db.collection('usuarios').doc(String(u.id)).set(u).catch(e=>mostrarErrorFirestore('guardar usuario',e));
+// Guarda la lista COMPLETA de usuarios en un solo documento (como JSON),
+// que es más confiable que escribir un documento por usuario.
+function guardarUsuariosEnFirestore(){
+  db.collection('usuarios').doc('lista').set({valor: JSON.stringify(USUARIOS)})
+    .then(()=>{ mostrarToast('✓ Usuarios guardados online',true); marcarFirebaseConectado(); })
+    .catch(e=>{ mostrarErrorFirestore('guardar usuarios',e); mostrarToast('✗ No se guardó online',false); });
 }
-function eliminarUsuarioDeFirestore(id){
-  db.collection('usuarios').doc(String(id)).delete().catch(e=>mostrarErrorFirestore('eliminar usuario',e));
-}
+// Alias retrocompatibles: cualquier cambio a un usuario guarda la lista completa.
+function guardarUsuarioEnFirestore(u){ guardarUsuariosEnFirestore(); }
+function eliminarUsuarioDeFirestore(id){ guardarUsuariosEnFirestore(); }
 
 function getRol(){ const u=USUARIOS.find(u=>u.user===currentUser); return u?u.rol:'Asistente'; }
 
@@ -1835,19 +1838,37 @@ const proyectosListos = new Promise(res=>{proyectosListosResolve=res;});
 
 async function cargarProyectosDesdeFirestore(){
   try{
-    const snap = await db.collection('proyectos').get();
-    if(snap.empty){
+    const ids = PROYECTOS.map(p=>String(p.id));
+    const resultados = await Promise.allSettled(
+      ids.map(id=>db.collection('proyectos').doc(id).get().then(snap=>({id,snap})))
+    );
+    let algunoExistia=false;
+    const loadedById={};
+    resultados.forEach(r=>{
+      if(r.status==='fulfilled' && r.value.snap.exists){
+        try{
+          loadedById[r.value.id]=JSON.parse(r.value.snap.data().valor);
+          algunoExistia=true;
+        }catch(e){}
+      }
+    });
+    if(!algunoExistia){
       // Primera vez: sembrar Firestore con los proyectos/datos de ejemplo incluidos en el código
-      const batch = db.batch();
-      PROYECTOS.forEach(p=>{
-        batch.set(db.collection('proyectos').doc(String(p.id)), {
+      await Promise.all(PROYECTOS.map(p=>
+        db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
           id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
-        });
-      });
-      await batch.commit();
+        })})
+      ));
     } else {
-      const loaded = snap.docs.map(d=>d.data()).sort((a,b)=>(a.id||0)-(b.id||0));
-      PROYECTOS.splice(0,PROYECTOS.length,...loaded);
+      // Reemplazar cada proyecto local con la versión guardada en Firestore (si existe)
+      PROYECTOS.forEach((p,i)=>{
+        const loaded=loadedById[String(p.id)];
+        if(loaded) PROYECTOS[i]=loaded;
+      });
+      // Agregar proyectos que existan en Firestore pero no localmente (creados desde otro dispositivo)
+      Object.keys(loadedById).forEach(id=>{
+        if(!PROYECTOS.find(p=>String(p.id)===id)) PROYECTOS.push(loadedById[id]);
+      });
     }
   }catch(e){
     mostrarErrorFirestore('cargar proyectos',e);
@@ -1862,14 +1883,38 @@ Promise.all([usuariosListos, proyectosListos]).then(()=>{
 // Guarda el proyecto activo en Firestore (con debounce para no saturar de escrituras
 // cuando se hacen varios cambios seguidos, p.ej. crear varios registros).
 let _guardarProyectoTimeout=null;
+// Muestra un mensaje breve abajo a la derecha (verde=ok, rojo=error) para confirmar
+// si un guardado online se completó o no.
+function mostrarToast(msg,ok){
+  let t=document.getElementById('fsToast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='fsToast';
+    t.style.cssText='position:fixed;bottom:16px;right:16px;z-index:99999;color:#fff;font-size:13px;padding:9px 16px;border-radius:8px;font-family:sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:opacity .3s;';
+    document.body.appendChild(t);
+  }
+  t.style.background = ok ? 'var(--green)' : 'var(--danger)';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._hideTimeout);
+  t._hideTimeout = setTimeout(()=>{ t.style.opacity='0'; }, 2500);
+}
+
 function guardarProyectoActual(){
   if(!currentProject) return;
   clearTimeout(_guardarProyectoTimeout);
   _guardarProyectoTimeout=setTimeout(()=>{
     const p=currentProject;
-    db.collection('proyectos').doc(String(p.id)).set({
+    if(!p) return;
+    db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
       id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
-    }).catch(e=>mostrarErrorFirestore('guardar proyecto',e));
+    })}).then(()=>{
+      mostrarToast('✓ Guardado online',true);
+      marcarFirebaseConectado();
+    }).catch(e=>{
+      mostrarErrorFirestore('guardar proyecto',e);
+      mostrarToast('✗ No se guardó online',false);
+    });
   },800);
 }
 function eliminarProyectoDeFirestore(id){
@@ -1877,9 +1922,15 @@ function eliminarProyectoDeFirestore(id){
 }
 // Guarda inmediatamente un proyecto cualquiera (no necesariamente el activo) en Firestore.
 function guardarProyectoEnFirestore(p){
-  db.collection('proyectos').doc(String(p.id)).set({
+  db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
     id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
-  }).catch(e=>mostrarErrorFirestore('guardar proyecto',e));
+  })}).then(()=>{
+    mostrarToast('✓ Guardado online',true);
+    marcarFirebaseConectado();
+  }).catch(e=>{
+    mostrarErrorFirestore('guardar proyecto',e);
+    mostrarToast('✗ No se guardó online',false);
+  });
 }
 
 // STATE as simple reference object — updated on project load
