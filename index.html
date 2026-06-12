@@ -1569,6 +1569,20 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Muestra un aviso visible (no solo en la consola) cuando falla una operación con Firestore,
+// para poder diagnosticar problemas de conexión/reglas/configuración.
+function mostrarErrorFirestore(contexto,e){
+  console.error(contexto,e);
+  let banner=document.getElementById('fsErrorBanner');
+  if(!banner){
+    banner=document.createElement('div');
+    banner.id='fsErrorBanner';
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#e24b4a;color:#fff;font-size:13px;padding:10px 16px;text-align:center;font-family:sans-serif;';
+    document.body.appendChild(banner);
+  }
+  banner.innerHTML = `⚠ Error guardando/cargando datos en línea (${contexto}): ${e&&e.message?e.message:e} — los cambios pueden no estar guardándose. <span style="text-decoration:underline;cursor:pointer;margin-left:8px" onclick="this.parentElement.remove()">Cerrar</span>`;
+}
+
 
 
 
@@ -1709,17 +1723,17 @@ async function cargarUsuariosDesdeFirestore(){
       USUARIOS = snap.docs.map(d=>d.data());
     }
   }catch(e){
-    console.error('Error cargando usuarios de Firestore, usando datos locales por defecto:', e);
+    mostrarErrorFirestore('cargar usuarios',e);
   }
   usuariosListosResolve();
 }
 cargarUsuariosDesdeFirestore();
 
 function guardarUsuarioEnFirestore(u){
-  db.collection('usuarios').doc(String(u.id)).set(u).catch(e=>console.error('Error guardando usuario:',e));
+  db.collection('usuarios').doc(String(u.id)).set(u).catch(e=>mostrarErrorFirestore('guardar usuario',e));
 }
 function eliminarUsuarioDeFirestore(id){
-  db.collection('usuarios').doc(String(id)).delete().catch(e=>console.error('Error eliminando usuario:',e));
+  db.collection('usuarios').doc(String(id)).delete().catch(e=>mostrarErrorFirestore('eliminar usuario',e));
 }
 
 function getRol(){ const u=USUARIOS.find(u=>u.user===currentUser); return u?u.rol:'Asistente'; }
@@ -1816,7 +1830,7 @@ async function cargarProyectosDesdeFirestore(){
       PROYECTOS.splice(0,PROYECTOS.length,...loaded);
     }
   }catch(e){
-    console.error('Error cargando proyectos de Firestore, usando datos locales por defecto:', e);
+    mostrarErrorFirestore('cargar proyectos',e);
   }
   proyectosListosResolve();
 }
@@ -1832,17 +1846,17 @@ function guardarProyectoActual(){
     const p=currentProject;
     db.collection('proyectos').doc(String(p.id)).set({
       id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
-    }).catch(e=>console.error('Error guardando proyecto:',e));
+    }).catch(e=>mostrarErrorFirestore('guardar proyecto',e));
   },800);
 }
 function eliminarProyectoDeFirestore(id){
-  db.collection('proyectos').doc(String(id)).delete().catch(e=>console.error('Error eliminando proyecto:',e));
+  db.collection('proyectos').doc(String(id)).delete().catch(e=>mostrarErrorFirestore('eliminar proyecto',e));
 }
 // Guarda inmediatamente un proyecto cualquiera (no necesariamente el activo) en Firestore.
 function guardarProyectoEnFirestore(p){
   db.collection('proyectos').doc(String(p.id)).set({
     id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
-  }).catch(e=>console.error('Error guardando proyecto:',e));
+  }).catch(e=>mostrarErrorFirestore('guardar proyecto',e));
 }
 
 // STATE as simple reference object — updated on project load
