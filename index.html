@@ -2277,6 +2277,15 @@ function viewSuplidor(i){
   openModal('modalDetail');
 }
 
+function newSuplidor(){
+  document.getElementById('sup_nombre').value='';
+  document.getElementById('sup_rnc').value='';
+  if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value='';
+  if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value='';
+  if(document.getElementById('sup_email')) document.getElementById('sup_email').value='';
+  openModal('modalSuplidor');
+}
+
 function editSuplidor(i){
   s=STATE.suplidores[i];
   document.getElementById('sup_nombre').value=s.nombre;
@@ -2315,6 +2324,22 @@ function renderGastos(){
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('gastos',${i},'tbodyGasto',renderGastos)"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`).join('');
+}
+
+function newGasto(){
+  document.getElementById('gs_fecha').value=today();
+  document.getElementById('gs_sup').value='';
+  document.getElementById('gs_desc').value='';
+  document.getElementById('gs_factura').value='';
+  document.getElementById('gs_ncf').value='0';
+  document.getElementById('gs_numncf').value='';
+  document.getElementById('gs_monto').value='';
+  document.getElementById('gs_itbis').value='';
+  document.getElementById('gs_ext').value='0';
+  document.getElementById('gs_cred').value='0';
+  document.getElementById('gs_pag').value='0';
+  document.getElementById('gs_obs').value='';
+  openModal('modalGasto');
 }
 
 function editGasto(i){
@@ -2377,6 +2402,17 @@ function renderBancos(){
     </tr>`).join('');
 }
 
+function newBanco(){
+  document.getElementById('bk_banco').value='';
+  document.getElementById('bk_cuenta').value='';
+  document.getElementById('bk_tipo').value='Corriente';
+  document.getElementById('bk_moneda').value='RD$';
+  document.getElementById('bk_titular').value='VIP Home SRL';
+  document.getElementById('bk_saldo').value='0';
+  document.getElementById('bk_estado').value='Activa';
+  openModal('modalBanco');
+}
+
 function editBanco(i){
   const b=STATE.bancos[i];
   document.getElementById('bk_banco').value=b.banco;
@@ -2432,6 +2468,14 @@ function viewEmpleado(i){
   openModal('modalDetail');
 }
 
+function newEmpleado(){
+  ['em_nombres','em_ap1','em_ap2','em_doc','em_tel','em_cel','em_puesto','em_prof','em_sueldo','em_banco','em_cuenta','em_fecha','em_email','em_dom'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('em_sexo').value='HOMBRE';
+  document.getElementById('em_nac').value='DOMINICANA';
+  document.getElementById('em_tipopago').value='Quincenal';
+  openModal('modalEmpleado');
+}
+
 function editEmpleado(i){
   e=STATE.empleados[i];
   document.getElementById('em_nombres').value=e.nombres||'';
@@ -2466,6 +2510,17 @@ function renderNomina(){
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('nomina',${i},'tbodyNomina',renderNomina)"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`).join('');
+}
+
+function newNomina(){
+  document.getElementById('nm_nombre').value='';
+  document.getElementById('nm_desc').value='';
+  document.getElementById('nm_fecha').value=today();
+  document.getElementById('nm_monto').value='';
+  document.getElementById('nm_banco').value='BANRESERVAS';
+  document.getElementById('nm_tipo').value='Quincenal';
+  document.getElementById('nm_obs').value='';
+  openModal('modalNomina');
 }
 
 function editNomina(i){
