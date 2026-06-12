@@ -276,7 +276,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
     <div class="proj-grid" id="projGrid"></div>
   </div>
   <div class="bot-bar">
-    <div class="fb-ind" id="fbStatus"><div class="fb-dot" id="fbDot"></div><span id="fbText">Conectando · Firebase...</span></div>
+    <div class="fb-ind" id="fbStatus" title="Conectando · Firebase..."><div class="fb-dot" id="fbDot" style="background:var(--light)"></div><span id="fbText">Conectando · Firebase...</span></div>
   </div>
 </div>
 
@@ -306,6 +306,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
       <div class="ah-proj-type" id="ahProjType">Proyecto</div>
     </div>
     <div class="ah-right">
+      <div class="fb-ind" id="fbStatus2" title="Conectando · Firebase..." style="margin-right:4px"><div class="fb-dot" id="fbDot2" style="background:var(--light)"></div></div>
       <div class="ah-avatar" id="ahAvatar">AD</div>
       <span class="ah-username" id="ahUsername">admin</span>
       <button class="ah-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Salir</button>
@@ -1589,11 +1590,17 @@ function marcarFirebaseConectado(){
   const dot=document.getElementById('fbDot'), txt=document.getElementById('fbText');
   if(dot){dot.style.background='var(--green)';}
   if(txt){txt.textContent='Conectado · Firebase';}
+  const dot2=document.getElementById('fbDot2'), st2=document.getElementById('fbStatus2');
+  if(dot2){dot2.style.background='var(--green)';}
+  if(st2){st2.title='Conectado · Firebase';}
 }
 function marcarFirebaseDesconectado(){
   const dot=document.getElementById('fbDot'), txt=document.getElementById('fbText');
   if(dot){dot.style.background='var(--danger)';}
   if(txt){txt.textContent='Sin conexión a Firebase — los cambios no se guardan en línea';}
+  const dot2=document.getElementById('fbDot2'), st2=document.getElementById('fbStatus2');
+  if(dot2){dot2.style.background='var(--danger)';}
+  if(st2){st2.title='Sin conexión a Firebase — los cambios no se guardan en línea';}
 }
 
 
