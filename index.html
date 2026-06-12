@@ -226,6 +226,8 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease both;}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -634,7 +636,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
     </div>
     <div class="tbl-wrap">
       <table id="tblUsuarios">
-        <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Módulos con acceso</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody id="tbodyUsuarios"></tbody>
       </table>
     </div>
@@ -895,15 +897,22 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 
 <!-- Usuario -->
 <div class="modal-bg" id="modalUsuario">
-  <div class="modal"><div class="modal-head"><h2>Nuevo Usuario</h2><button class="modal-close" onclick="closeModal('modalUsuario')">×</button></div>
+  <div class="modal" style="max-width:780px"><div class="modal-head"><h2 id="mUsuTit">Nuevo Usuario</h2><button class="modal-close" onclick="closeModal('modalUsuario')">×</button></div>
   <div class="modal-body">
+    <input type="hidden" id="mu_idx"/>
     <div class="form-grid">
-      <div class="fg"><label>Nombre completo</label><input id="us_nombre"/></div>
-      <div class="fg"><label>Usuario</label><input id="us_user"/></div>
-      <div class="fg"><label>Contraseña temporal</label><input id="us_pass" type="password"/></div>
-      <div class="fg"><label>Rol</label><select id="us_rol"><option>Administrador</option><option>Supervisor</option><option>Operador</option><option>Solo lectura</option></select></div>
-      <div class="fg" style="grid-column:1/-1"><label>Proyectos con acceso</label><select id="us_proj" multiple style="height:90px"></select></div>
+      <div class="fg"><label>Nombre completo</label><input id="mu_nombre"/></div>
+      <div class="fg"><label>Usuario</label><input id="mu_user"/></div>
+      <div class="fg"><label>Contraseña</label><input id="mu_pass" type="password"/></div>
+      <div class="fg"><label>Rol</label><select id="mu_rol" onchange="loadRolDefaults()"></select></div>
+      <div class="fg"><label>Estado</label><select id="mu_estado"><option>Activo</option><option>Inactivo</option></select></div>
     </div>
+    <p style="font-size:12px;color:var(--muted);margin:1rem 0 .5rem">Acceso por módulo — marque a qué módulos puede entrar este usuario y qué puede hacer en cada uno:</p>
+    <div class="tbl-wrap"><table style="font-size:12px">
+      <thead><tr><th>Módulo</th><th>Ver</th><th>Crear</th><th>Editar</th><th>Eliminar</th></tr></thead>
+      <tbody id="mu_perms"></tbody>
+    </table></div>
+    <p id="mu_adminNote" style="font-size:12px;color:var(--green-dark);display:none;margin-top:.6rem"><i class="ti ti-shield-check"></i> El rol Administrador tiene acceso total (ver, crear, editar y eliminar) a todos los módulos automáticamente, incluyendo Usuarios.</p>
   </div>
   <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalUsuario')">Cancelar</button><button class="btn btn-primary" onclick="saveUsuario()"><i class="ti ti-check"></i> Guardar</button></div></div>
 </div>
@@ -1622,58 +1631,18 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 </div>
 
 
-<!-- ═══ MODAL USUARIO ═══ -->
-<div class="modal-bg" id="modalUsuario">
-<div class="modal" style="max-width:480px">
-  <div class="modal-head"><h2 id="mUsuTit">Nuevo Usuario</h2><button class="modal-close" onclick="closeModal('modalUsuario')">×</button></div>
-  <div class="modal-body">
-    <input type="hidden" id="mu_idx" value=""/>
-    <div class="form-grid">
-      <div class="fg" style="grid-column:1/-1"><label>Nombre Completo</label><input id="mu_nombre" placeholder="Nombre del usuario"/></div>
-      <div class="fg"><label>Usuario (login)</label><input id="mu_user" placeholder="usuario123"/></div>
-      <div class="fg"><label>Contraseña</label><input id="mu_pass" type="password" placeholder="••••••"/></div>
-      <div class="fg"><label>Rol Base</label>
-        <select id="mu_rol" onchange="loadRolDefaults()">
-          <option>Administrador</option><option>Supervisor</option><option>Operador</option>
-        </select>
-      </div>
-      <div class="fg"><label>Estado</label>
-        <select id="mu_estado"><option>Activo</option><option>Inactivo</option></select>
-      </div>
-    </div>
-    <div class="form-section">Permisos</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Estos permisos aplican a este usuario en todos los módulos.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_ver"> <i class="ti ti-eye" style="color:var(--muted)"></i> Ver</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_crear"> <i class="ti ti-plus" style="color:var(--green)"></i> Crear</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_editar"> <i class="ti ti-edit" style="color:var(--muted)"></i> Editar</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_eliminar"> <i class="ti ti-trash" style="color:var(--danger)"></i> Eliminar</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_importar"> <i class="ti ti-upload" style="color:var(--muted)"></i> Importar</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:8px 10px;border:1px solid var(--border);border-radius:7px;">
-        <input type="checkbox" id="mu_exportar"> <i class="ti ti-download" style="color:var(--muted)"></i> Exportar</label>
-    </div>
-    <div style="margin-top:10px;padding:10px;background:#f8f9fb;border-radius:8px;font-size:12px;color:var(--muted)">
-      <i class="ti ti-info-circle"></i> Cambia el Rol Base para cargar permisos predeterminados, luego ajusta individualmente.
-    </div>
-  </div>
-  <div class="modal-foot">
-    <button class="btn btn-outline" onclick="closeModal('modalUsuario')">Cancelar</button>
-    <button class="btn btn-primary" onclick="saveUsuario()"><i class="ti ti-check"></i> Guardar</button>
-  </div>
-</div>
-</div>
-
 <script>
-
-
-
-
-
+// ═══ FIREBASE INIT ═══
+const firebaseConfig = {
+  apiKey: "AIzaSyChWv3iSQVZFYi5fZUwbM8m0FxwxsN178Q",
+  authDomain: "viphome-23e0b.firebaseapp.com",
+  projectId: "viphome-23e0b",
+  storageBucket: "viphome-23e0b.firebasestorage.app",
+  messagingSenderId: "563557009089",
+  appId: "1:563557009089:web:eeceb193ca3903d1047640"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 
 
@@ -1699,6 +1668,7 @@ const DB_NOMINA = [{"id": "1", "nombre": "CENTROJE", "descripcion": "PAGO DE TRA
 // ESTADO GLOBAL — estructura por proyecto
 // ═══════════════════════════════════════════════════
 let currentUser = null;
+let currentModule = 'dashboard';
 let currentProject = null;   // objeto proyecto activo
 let selectedProjId = null;
 let editingClienteIdx = null;
@@ -1725,27 +1695,134 @@ currentPagoRef = null;
 let currentVentaApt = null;
 let currentVentaCliente = null;
 
-const ROLES = {
-  Administrador:{ver:true,crear:true,editar:true,eliminar:true,importar:true,exportar:true},
-  Supervisor:   {ver:true,crear:true,editar:true,eliminar:false,importar:true,exportar:true},
-  Operador:     {ver:true,crear:true,editar:false,eliminar:false,importar:false,exportar:false},
-};
+// ═══ MÓDULOS DEL SISTEMA Y PERMISOS POR USUARIO ═══
+const MODULOS = [
+  ['dashboard','Dashboard'],
+  ['apartamentos','Apartamentos'],
+  ['clientes','Clientes'],
+  ['contratos','Contratos'],
+  ['ventas','Ventas'],
+  ['cxc','CxC / Cobros'],
+  ['suplidores','Suplidores'],
+  ['gastos','Gastos'],
+  ['cxp','CxP / Facturas'],
+  ['bancos','Cuentas Bancarias'],
+  ['empleados','Empleados'],
+  ['nomina','Nómina'],
+  ['informes','Informes'],
+  ['usuarios','Usuarios (Admin)']
+];
+const ROLES_LIST = ['Administrador','Dueño','Asistente','Secretaria','Operador','Otro'];
 
-const USUARIOS = [
+function emptyPermisos(){
+  const o={};
+  MODULOS.forEach(([k])=>o[k]={ver:false,crear:false,editar:false,eliminar:false});
+  return o;
+}
+function fullPermisos(){
+  const o={};
+  MODULOS.forEach(([k])=>o[k]={ver:true,crear:true,editar:true,eliminar:true});
+  return o;
+}
+function modPerm(mods){
+  const o=emptyPermisos();
+  Object.keys(mods).forEach(k=>{ if(o[k]) o[k]={...o[k],...mods[k]}; });
+  return o;
+}
+
+let USUARIOS = [
   {id:1,nombre:'Edward Villa Moronta',user:'admin',pass:'admin123',rol:'Administrador',estado:'Activo',
-   permisos:{ver:true,crear:true,editar:true,eliminar:true,importar:true,exportar:true}},
-  {id:2,nombre:'Supervisor Demo',user:'supervisor',pass:'sup123',rol:'Supervisor',estado:'Activo',
-   permisos:{ver:true,crear:true,editar:true,eliminar:false,importar:true,exportar:true}},
-  {id:3,nombre:'Operador Demo',user:'operador',pass:'op123',rol:'Operador',estado:'Activo',
-   permisos:{ver:true,crear:true,editar:false,eliminar:false,importar:false,exportar:false}},
+   permisos:fullPermisos()},
+  {id:2,nombre:'Supervisor Demo',user:'supervisor',pass:'sup123',rol:'Dueño',estado:'Activo',
+   permisos:modPerm({
+     dashboard:{ver:true},
+     apartamentos:{ver:true,crear:true,editar:true},
+     clientes:{ver:true,crear:true,editar:true},
+     contratos:{ver:true,crear:true,editar:true},
+     ventas:{ver:true,crear:true,editar:true},
+     cxc:{ver:true,crear:true,editar:true},
+     suplidores:{ver:true,crear:true,editar:true},
+     gastos:{ver:true,crear:true,editar:true},
+     cxp:{ver:true,crear:true,editar:true},
+     bancos:{ver:true,crear:true,editar:true},
+     empleados:{ver:true,crear:true,editar:true},
+     nomina:{ver:true,crear:true,editar:true},
+     informes:{ver:true}
+   })},
+  {id:3,nombre:'Operador Demo',user:'operador',pass:'op123',rol:'Asistente',estado:'Activo',
+   permisos:modPerm({
+     dashboard:{ver:true},
+     apartamentos:{ver:true,crear:true},
+     clientes:{ver:true,crear:true},
+     contratos:{ver:true,crear:true},
+     ventas:{ver:true,crear:true},
+     cxc:{ver:true,crear:true},
+     suplidores:{ver:true},
+     gastos:{ver:true,crear:true},
+     cxp:{ver:true},
+     bancos:{ver:true},
+     empleados:{ver:true},
+     nomina:{ver:true},
+     informes:{ver:true}
+   })},
 ];
 
-function getRol(){ const u=USUARIOS.find(u=>u.user===currentUser); return u?u.rol:'Operador'; }
+// ═══ SINCRONIZACIÓN DE USUARIOS CON FIRESTORE ═══
+let usuariosListosResolve;
+const usuariosListos = new Promise(res=>{usuariosListosResolve=res;});
+
+async function cargarUsuariosDesdeFirestore(){
+  try{
+    const snap = await db.collection('usuarios').get();
+    if(snap.empty){
+      // Primera vez: sembrar Firestore con los usuarios por defecto
+      const batch = db.batch();
+      USUARIOS.forEach(u=>{ batch.set(db.collection('usuarios').doc(String(u.id)), u); });
+      await batch.commit();
+    } else {
+      USUARIOS = snap.docs.map(d=>d.data());
+    }
+  }catch(e){
+    console.error('Error cargando usuarios de Firestore, usando datos locales por defecto:', e);
+  }
+  usuariosListosResolve();
+}
+cargarUsuariosDesdeFirestore();
+
+function guardarUsuarioEnFirestore(u){
+  db.collection('usuarios').doc(String(u.id)).set(u).catch(e=>console.error('Error guardando usuario:',e));
+}
+function eliminarUsuarioDeFirestore(id){
+  db.collection('usuarios').doc(String(id)).delete().catch(e=>console.error('Error eliminando usuario:',e));
+}
+
+function getRol(){ const u=USUARIOS.find(u=>u.user===currentUser); return u?u.rol:'Asistente'; }
+
+// puedeHacer(accion) revisa el permiso del usuario actual sobre el módulo
+// en el que se encuentra (currentModule). El Administrador siempre tiene
+// acceso total a todos los módulos, incluyendo Usuarios.
 function puedeHacer(accion){
   const u=USUARIOS.find(u=>u.user===currentUser);
   if(!u)return false;
-  if(u.permisos&&u.permisos[accion]!==undefined) return !!u.permisos[accion];
-  return !!(ROLES[u.rol]&&ROLES[u.rol][accion]);
+  if(u.rol==='Administrador')return true;
+  const m=(typeof currentModule!=='undefined'&&currentModule==='admin')?'usuarios':(typeof currentModule!=='undefined'?currentModule:'dashboard');
+  return !!(u.permisos&&u.permisos[m]&&u.permisos[m][accion]);
+}
+
+// Filtra el menú lateral según los permisos "ver" del usuario actual.
+// El módulo de Administración solo es visible para el rol Administrador.
+function applyNavPermissions(){
+  const u=USUARIOS.find(x=>x.user===currentUser);
+  if(!u)return;
+  MODULOS.forEach(([k])=>{
+    if(k==='usuarios')return;
+    const el=document.querySelector(`.nav-item[onclick*="showPage('${k}')"]`);
+    if(!el)return;
+    const ok = u.rol==='Administrador' || (u.permisos&&u.permisos[k]&&u.permisos[k].ver);
+    el.style.display = ok ? '' : 'none';
+  });
+  const adminEl=document.querySelector(`.nav-item[onclick*="showPage('admin')"]`);
+  if(adminEl) adminEl.style.display = (u.rol==='Administrador') ? '' : 'none';
 }
 
 function emptyProjectData(){
@@ -1879,15 +1956,21 @@ function enterProject(){
   document.getElementById('navUDot').textContent=(currentUser||'AD').substring(0,2).toUpperCase();
   document.getElementById('navUName').textContent=currentUser||'admin';
   hide('projectScreen'); show('appScreen');
+  applyNavPermissions();
   showPage('dashboard');
   addLog('Accedió al proyecto '+currentProject.name);
   renderAll();
 }
 
-function doLogin(){
+async function doLogin(){
   u=document.getElementById('uUser').value.trim();
   const p=document.getElementById('uPass').value.trim();
   if(!u||!p){alert('Ingrese usuario y contraseña.');return;}
+  const btn=document.getElementById('btnLogin');
+  const original=btn.innerHTML;
+  btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2"></i> Verificando...';
+  await usuariosListos;
+  btn.disabled=false; btn.innerHTML=original;
   const found=USUARIOS.find(x=>x.user===u&&x.pass===p&&x.estado==='Activo');
   if(!found){alert('Usuario o contraseña incorrectos.');return;}
   currentUser=u;
@@ -2031,6 +2114,12 @@ const pageTitles = {
 };
 
 function showPage(name){
+  const u=USUARIOS.find(x=>x.user===currentUser);
+  if(u && u.rol!=='Administrador'){
+    if(name==='admin'){ alert('Solo el Administrador puede acceder a este módulo.'); return; }
+    if(!(u.permisos&&u.permisos[name]&&u.permisos[name].ver)){ alert('No tiene permiso para acceder a este módulo.'); return; }
+  }
+  currentModule=name;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
@@ -3415,22 +3504,23 @@ function renderLog(){
 
 // ═══ PERMISOS DE USUARIO ═══
 function renderUsuarios(){
-  tbody=document.getElementById('tbodyUsuarios');
+  const tbody=document.getElementById('tbodyUsuarios');
   if(!tbody)return;
   tbody.innerHTML=USUARIOS.map((u,i)=>{
-    p=u.permisos||{};
-    const badges=['ver','crear','editar','eliminar','importar','exportar']
-      .filter(k=>p[k]).map(k=>`<span class="badge b-gray" style="font-size:10px">${k}</span>`).join(' ');
+    const acceso = u.rol==='Administrador' ? 'Todos los módulos (acceso total)' :
+      (MODULOS.filter(([k])=>k!=='usuarios'&&u.permisos&&u.permisos[k]&&u.permisos[k].ver)
+        .map(([,label])=>label).join(', ') || '—');
     return `<tr>
       <td><strong>${u.nombre}</strong></td><td>${u.user}</td>
       <td><span class="badge b-blue">${u.rol}</span></td>
-      <td style="font-size:11px">${badges||'—'}</td>
+      <td style="font-size:11px;max-width:280px">${acceso}</td>
       <td><span class="badge ${u.estado==='Activo'?'b-green':'b-red'}">${u.estado}</span></td>
       <td style="white-space:nowrap">
-        ${puedeHacer('editar')?`<button class="btn btn-outline btn-sm" onclick="editUsuario(${i})"><i class="ti ti-edit"></i> Editar</button>
+        <button class="btn btn-outline btn-sm" onclick="editUsuario(${i})"><i class="ti ti-edit"></i> Editar</button>
         <button class="btn-icon" onclick="toggleUsuario(${i})" title="${u.estado==='Activo'?'Desactivar':'Activar'}">
           <i class="ti ti-toggle-${u.estado==='Activo'?'right':'left'}" style="color:${u.estado==='Activo'?'var(--green)':'var(--light)'}"></i>
-        </button>`:'—'}
+        </button>
+        <button class="btn-icon" onclick="deleteUsuario(${i})" style="color:var(--danger)" title="Eliminar"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`;
   }).join('');
@@ -3438,61 +3528,108 @@ function renderUsuarios(){
 function toggleUsuario(i){
   if(USUARIOS[i].user===currentUser){alert('No puede desactivar su propio usuario.');return;}
   USUARIOS[i].estado=USUARIOS[i].estado==='Activo'?'Inactivo':'Activo';
+  guardarUsuarioEnFirestore(USUARIOS[i]);
+  addLog((USUARIOS[i].estado==='Activo'?'Activó':'Desactivó')+' usuario '+USUARIOS[i].user);
   renderUsuarios();
 }
+function deleteUsuario(i){
+  const u=USUARIOS[i]; if(!u)return;
+  if(u.user===currentUser){alert('No puede eliminar su propio usuario.');return;}
+  if(u.rol==='Administrador' && USUARIOS.filter(x=>x.rol==='Administrador').length<=1){
+    alert('Debe existir al menos un usuario Administrador.');return;
+  }
+  if(confirm('¿Eliminar el usuario "'+u.nombre+'"? Esta acción no se puede deshacer.')){
+    USUARIOS.splice(i,1);
+    eliminarUsuarioDeFirestore(u.id);
+    addLog('Eliminó usuario '+u.user);
+    renderUsuarios();
+  }
+}
+
+// Construye la tabla de permisos por módulo dentro del modal de usuario
+function buildPermisosTable(perms){
+  document.getElementById('mu_perms').innerHTML=MODULOS.map(([k,label])=>{
+    const p=(perms&&perms[k])||{ver:false,crear:false,editar:false,eliminar:false};
+    return `<tr><td>${label}</td>${['ver','crear','editar','eliminar'].map(a=>
+      `<td style="text-align:center"><input type="checkbox" class="mu_perm" data-mod="${k}" data-acc="${a}" ${p[a]?'checked':''}></td>`).join('')}</tr>`;
+  }).join('');
+}
+
+// Activa/desactiva la tabla de permisos según el rol elegido.
+// El rol Administrador siempre tiene acceso total y la tabla queda bloqueada.
+// Para cualquier otro rol, la tabla queda editable (no se pre-marca nada).
+function loadRolDefaults(){
+  const rol=document.getElementById('mu_rol').value;
+  const checks=document.querySelectorAll('#mu_perms .mu_perm');
+  const note=document.getElementById('mu_adminNote');
+  if(rol==='Administrador'){
+    checks.forEach(c=>{c.checked=true;c.disabled=true;});
+    note.style.display='block';
+  } else {
+    checks.forEach(c=>{c.disabled=false;});
+    note.style.display='none';
+  }
+}
+
 function newUsuario(){
+  if(!puedeHacer('crear')&&getRol()!=='Administrador'){alert('Solo el Administrador puede crear usuarios.');return;}
   document.getElementById('mUsuTit').textContent='Nuevo Usuario';
-  ['mu_nombre','mu_user','mu_pass'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('mu_rol').value='Operador';
+  document.getElementById('mu_nombre').value='';
+  document.getElementById('mu_user').value='';
+  document.getElementById('mu_pass').value='';
   document.getElementById('mu_estado').value='Activo';
   document.getElementById('mu_idx').value='';
-  ['mu_ver','mu_crear','mu_editar','mu_eliminar','mu_importar','mu_exportar'].forEach(id=>{
-    e=document.getElementById(id);if(e)e.checked=false;
-  });
+  const rolSel=document.getElementById('mu_rol');
+  rolSel.innerHTML=ROLES_LIST.map(r=>`<option>${r}</option>`).join('');
+  rolSel.value='Asistente';
+  buildPermisosTable(emptyPermisos());
+  loadRolDefaults();
   openModal('modalUsuario');
 }
 function editUsuario(i){
-  u=USUARIOS[i]; if(!u)return;
-  document.getElementById('mUsuTit').textContent='Editar Permisos';
+  const u=USUARIOS[i]; if(!u)return;
+  document.getElementById('mUsuTit').textContent='Editar Usuario';
   document.getElementById('mu_nombre').value=u.nombre||'';
   document.getElementById('mu_user').value=u.user||'';
   document.getElementById('mu_pass').value=u.pass||'';
-  document.getElementById('mu_rol').value=u.rol||'Operador';
   document.getElementById('mu_estado').value=u.estado||'Activo';
   document.getElementById('mu_idx').value=i;
-  p=u.permisos||{};
-  ['ver','crear','editar','eliminar','importar','exportar'].forEach(k=>{
-    e=document.getElementById('mu_'+k); if(e)e.checked=!!p[k];
-  });
+  const rolSel=document.getElementById('mu_rol');
+  rolSel.innerHTML=ROLES_LIST.map(r=>`<option>${r}</option>`).join('');
+  rolSel.value=ROLES_LIST.includes(u.rol)?u.rol:'Otro';
+  buildPermisosTable(u.permisos||emptyPermisos());
+  loadRolDefaults();
   openModal('modalUsuario');
 }
-function loadRolDefaults(){
-  const rol=document.getElementById('mu_rol').value;
-  d=ROLES[rol]||{};
-  ['ver','crear','editar','eliminar','importar','exportar'].forEach(k=>{
-    e=document.getElementById('mu_'+k); if(e)e.checked=!!d[k];
-  });
-}
 function saveUsuario(){
-  nombre=document.getElementById('mu_nombre').value.trim();
+  const nombre=document.getElementById('mu_nombre').value.trim();
   const user=document.getElementById('mu_user').value.trim();
   const pass=document.getElementById('mu_pass').value.trim();
   if(!nombre||!user||!pass){alert('Nombre, usuario y contraseña son obligatorios.');return;}
-  idx=document.getElementById('mu_idx').value;
-  u={id:idx!==''?USUARIOS[parseInt(idx)].id:Date.now(),nombre,user,pass,
-    rol:document.getElementById('mu_rol').value,estado:document.getElementById('mu_estado').value,
-    permisos:{
-      ver:document.getElementById('mu_ver').checked,
-      crear:document.getElementById('mu_crear').checked,
-      editar:document.getElementById('mu_editar').checked,
-      eliminar:document.getElementById('mu_eliminar').checked,
-      importar:document.getElementById('mu_importar').checked,
-      exportar:document.getElementById('mu_exportar').checked,
-    }
+  const idx=document.getElementById('mu_idx').value;
+  const idxNum=idx===''?-1:parseInt(idx);
+  if(USUARIOS.some((x,j)=>x.user===user && j!==idxNum)){alert('Ese nombre de usuario ya existe.');return;}
+  const rol=document.getElementById('mu_rol').value;
+  let permisos;
+  if(rol==='Administrador'){
+    permisos=fullPermisos();
+  } else {
+    permisos=emptyPermisos();
+    document.querySelectorAll('#mu_perms .mu_perm').forEach(c=>{
+      if(permisos[c.dataset.mod]) permisos[c.dataset.mod][c.dataset.acc]=c.checked;
+    });
+  }
+  const u={
+    id: idxNum>=0 ? USUARIOS[idxNum].id : Date.now(),
+    nombre,user,pass,rol,
+    estado:document.getElementById('mu_estado').value,
+    permisos
   };
-  if(idx!=='') USUARIOS[parseInt(idx)]=u; else USUARIOS.push(u);
+  if(idxNum>=0) USUARIOS[idxNum]=u; else USUARIOS.push(u);
+  guardarUsuarioEnFirestore(u);
   closeModal('modalUsuario'); renderUsuarios();
-  addLog((idx!==''?'Editó permisos de ':'Creó usuario ')+u.user);
+  addLog((idxNum>=0?'Editó usuario ':'Creó usuario ')+u.user);
+  if(u.user===currentUser) applyNavPermissions();
 }
 
 
