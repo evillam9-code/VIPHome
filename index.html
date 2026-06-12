@@ -578,10 +578,10 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── INFORMES ── -->
 <div id="page-informes" class="page">
   <div class="bar">
-    <select class="filter" id="infMes"><option value="">-- Mes --</option></select>
-    <select class="filter" id="infAnio"><option value="">-- Año --</option></select>
-    <button class="btn btn-primary" onclick="generarInforme()"><i class="ti ti-chart-bar"></i> Generar</button>
-    <button class="btn btn-outline" onclick="printInforme()"><i class="ti ti-printer"></i> Imprimir</button>
+    <select class="filter" id="infTipo"><option value="cxc">CxC — Financiamientos</option><option value="cxp">Gastos / CxP</option><option value="nomina">Nómina</option><option value="flujo">Flujo de Caja</option></select>
+    <select class="filter" id="infMes"><option value="">Todos los meses</option></select>
+    <button class="btn btn-primary" onclick="genInforme()"><i class="ti ti-chart-bar"></i> Generar</button>
+    <button class="btn btn-outline" onclick="exportInforme()"><i class="ti ti-download"></i> Exportar PDF</button>
   </div>
   <div id="informeContent" class="card" style="margin-top:1rem"></div>
 </div>
@@ -652,65 +652,6 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
     </div>
   </div>
 </div>
-
-<!-- ── BANCOS ── -->
-    <div id="page-bancos" class="page">
-      <div class="bar">
-        <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar cuenta..."/></div>
-        <button class="btn btn-primary" onclick="openModal('modalBanco')"><i class="ti ti-plus"></i> Nueva Cuenta</button>
-        <button class="btn btn-outline"><i class="ti ti-download"></i> Exportar</button>
-      </div>
-      <div class="stat-grid" id="bancoStats"></div>
-      <div class="card">
-        <div class="card-title">Cuentas bancarias</div>
-        <div class="tbl-wrap"><table id="tblBancos">
-          <thead><tr><th>Banco</th><th>Cuenta</th><th>Tipo</th><th>Moneda</th><th>Titular</th><th>Saldo</th><th>Estado</th><th>Acciones</th></tr></thead>
-          <tbody id="tbodyBancos"></tbody>
-        </table></div>
-      </div>
-    </div>
-
-    
-<!-- ── EMPLEADOS ── -->
-    <div id="page-empleados" class="page">
-      <div class="bar">
-        <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar empleado..." oninput="filterTable('tblEmp',this.value)"/></div>
-        <button class="btn btn-primary" onclick="openModal('modalEmpleado')"><i class="ti ti-plus"></i> Nuevo Empleado</button>
-        <button class="btn btn-outline" onclick="exportTable('tblEmp','Empleados')"><i class="ti ti-download"></i> Exportar</button>
-        <button class="btn btn-outline" onclick="openImport('empleados')"><i class="ti ti-upload"></i> Importar</button>
-      </div>
-      <div class="card"><div class="tbl-wrap"><table id="tblEmp">
-        <thead><tr><th>#</th><th>Nombre</th><th>Documento</th><th>Puesto</th><th>Tipo Pago</th><th>Sueldo</th><th>Estado</th><th>Acciones</th></tr></thead>
-        <tbody id="tbodyEmp"></tbody>
-      </table></div></div>
-    </div>
-
-    
-<!-- ── NOMINA ── -->
-    <div id="page-nomina" class="page">
-      <div class="bar">
-        <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar..." oninput="filterTable('tblNomina',this.value)"/></div>
-        <button class="btn btn-primary" onclick="openModal('modalNomina')"><i class="ti ti-plus"></i> Nuevo Pago</button>
-        <button class="btn btn-outline" onclick="exportTable('tblNomina','Nomina')"><i class="ti ti-download"></i> Exportar</button>
-        <button class="btn btn-outline" onclick="openImport('nomina')"><i class="ti ti-upload"></i> Importar</button>
-      </div>
-      <div class="card"><div class="tbl-wrap"><table id="tblNomina">
-        <thead><tr><th>#</th><th>Beneficiario</th><th>Descripción</th><th>Fecha</th><th>Monto RD$</th><th>Observación</th><th>Acciones</th></tr></thead>
-        <tbody id="tbodyNomina"></tbody>
-      </table></div></div>
-    </div>
-
-    
-<!-- ── INFORMES ── -->
-    <div id="page-informes" class="page">
-      <div class="bar">
-        <select class="filter" id="infTipo"><option value="cxc">CxC — Financiamientos</option><option value="cxp">Gastos / CxP</option><option value="nomina">Nómina</option><option value="flujo">Flujo de Caja</option></select>
-        <select class="filter" id="infMes"><option value="">Todos los meses</option></select>
-        <button class="btn btn-primary" onclick="genInforme()"><i class="ti ti-chart-bar"></i> Generar</button>
-        <button class="btn btn-outline" onclick="exportInforme()"><i class="ti ti-download"></i> Exportar PDF</button>
-      </div>
-      <div id="informeContent"></div>
-    </div>
 
     
       </div><!-- end app-content -->
@@ -929,22 +870,6 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 </div>
 
 <!-- Proyecto admin -->
-<div class="modal-bg" id="modalProyecto">
-  <div class="modal"><div class="modal-head"><h2>Nuevo Proyecto</h2><button class="modal-close" onclick="closeModal('modalProyecto')">×</button></div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="fg" style="grid-column:1/-1"><label>Nombre del proyecto</label><input id="pr_nombre"/></div>
-      <div class="fg"><label>Tipo</label><select id="pr_tipo"><option>Condominio</option><option>Urbanización</option><option>Comercial</option><option>Otro</option></select></div>
-      <div class="fg"><label>RNC</label><input id="pr_rnc"/></div>
-      <div class="fg"><label>Teléfono</label><input id="pr_tel"/></div>
-      <div class="fg"><label>Email</label><input id="pr_email" type="email"/></div>
-      <div class="fg"><label>Estado</label><select id="pr_estado"><option>Activo</option><option>En construcción</option><option>Inactivo</option></select></div>
-      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="pr_dir"/></div>
-    </div>
-  </div>
-  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalProyecto')">Cancelar</button><button class="btn btn-primary" onclick="saveProyecto()"><i class="ti ti-check"></i> Guardar</button></div></div>
-</div>
-
 <!-- Detail Modal -->
 <div class="modal-bg" id="modalDetail">
   <div class="modal" style="max-width:680px"><div class="modal-head"><h2 id="detailTitle">Detalle</h2><button class="modal-close" onclick="closeModal('modalDetail')">×</button></div>
@@ -1678,6 +1603,7 @@ let editingCxcIdx = null;
 let editingSupIdx = null;
 let editingEmplIdx = null;
 let editingBancoIdx = null;
+let editingNominaIdx = null;
 
 // Usuarios y roles — globales (no por proyecto)
 
@@ -1869,6 +1795,56 @@ const PROYECTOS = [
 ];
 function PD(){ return currentProject ? currentProject.data : emptyProjectData(); }
 
+// ═══ SINCRONIZACIÓN DE PROYECTOS (datos de cada módulo) CON FIRESTORE ═══
+let proyectosListosResolve;
+const proyectosListos = new Promise(res=>{proyectosListosResolve=res;});
+
+async function cargarProyectosDesdeFirestore(){
+  try{
+    const snap = await db.collection('proyectos').get();
+    if(snap.empty){
+      // Primera vez: sembrar Firestore con los proyectos/datos de ejemplo incluidos en el código
+      const batch = db.batch();
+      PROYECTOS.forEach(p=>{
+        batch.set(db.collection('proyectos').doc(String(p.id)), {
+          id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+        });
+      });
+      await batch.commit();
+    } else {
+      const loaded = snap.docs.map(d=>d.data()).sort((a,b)=>(a.id||0)-(b.id||0));
+      PROYECTOS.splice(0,PROYECTOS.length,...loaded);
+    }
+  }catch(e){
+    console.error('Error cargando proyectos de Firestore, usando datos locales por defecto:', e);
+  }
+  proyectosListosResolve();
+}
+cargarProyectosDesdeFirestore();
+
+// Guarda el proyecto activo en Firestore (con debounce para no saturar de escrituras
+// cuando se hacen varios cambios seguidos, p.ej. crear varios registros).
+let _guardarProyectoTimeout=null;
+function guardarProyectoActual(){
+  if(!currentProject) return;
+  clearTimeout(_guardarProyectoTimeout);
+  _guardarProyectoTimeout=setTimeout(()=>{
+    const p=currentProject;
+    db.collection('proyectos').doc(String(p.id)).set({
+      id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+    }).catch(e=>console.error('Error guardando proyecto:',e));
+  },800);
+}
+function eliminarProyectoDeFirestore(id){
+  db.collection('proyectos').doc(String(id)).delete().catch(e=>console.error('Error eliminando proyecto:',e));
+}
+// Guarda inmediatamente un proyecto cualquiera (no necesariamente el activo) en Firestore.
+function guardarProyectoEnFirestore(p){
+  db.collection('proyectos').doc(String(p.id)).set({
+    id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+  }).catch(e=>console.error('Error guardando proyecto:',e));
+}
+
 // STATE as simple reference object — updated on project load
 const STATE = {
   get clientes(){ return currentProject ? currentProject.data.clientes : []; },
@@ -1930,7 +1906,7 @@ function renderProjectGrid(){
       ${badge}
       <div style="font-size:11px;color:var(--muted);margin-top:4px;">${cli} cliente${cli!==1?'s':''}</div>
     </div>`;
-  }).join('')+(isAdmin?`<div class="add-proj" onclick="openModal('modalProyecto')"><i class="ti ti-plus" style="font-size:28px;color:var(--light)"></i><span>Nuevo proyecto</span></div>`:'');
+  }).join('')+(isAdmin?`<div class="add-proj" onclick="newProyecto()"><i class="ti ti-plus" style="font-size:28px;color:var(--light)"></i><span>Nuevo proyecto</span></div>`:'');
 }
 
 function selectCard(el,idx){
@@ -1969,7 +1945,7 @@ async function doLogin(){
   const btn=document.getElementById('btnLogin');
   const original=btn.innerHTML;
   btn.disabled=true; btn.innerHTML='<i class="ti ti-loader-2"></i> Verificando...';
-  await usuariosListos;
+  await Promise.all([usuariosListos, proyectosListos]);
   btn.disabled=false; btn.innerHTML=original;
   const found=USUARIOS.find(x=>x.user===u&&x.pass===p&&x.estado==='Activo');
   if(!found){alert('Usuario o contraseña incorrectos.');return;}
@@ -2002,8 +1978,51 @@ function deleteProyecto(i){
   p=PROYECTOS[i];
   if(confirm('¿Eliminar proyecto "'+p.name+'"? Se eliminarán TODOS sus datos. Esta acción no se puede deshacer.')){
     PROYECTOS.splice(i,1);
+    eliminarProyectoDeFirestore(p.id);
     renderProjectGrid();
   }
+}
+
+function newProyecto(){
+  if(!puedeHacer('crear')){alert('No tiene permisos para crear proyectos.');return;}
+  document.getElementById('mp_idx').value='';
+  document.getElementById('mp_name').value='';
+  document.getElementById('mp_type').value='Condominio';
+  document.getElementById('mp_location').value='';
+  document.getElementById('mp_status').value='active';
+  document.getElementById('mProyTit').textContent='Nuevo Proyecto';
+  openModal('modalProyecto');
+}
+
+function editProyecto(i){
+  if(!puedeHacer('editar')){alert('No tiene permisos para editar proyectos.');return;}
+  const p=PROYECTOS[i];
+  document.getElementById('mp_idx').value=i;
+  document.getElementById('mp_name').value=p.name;
+  document.getElementById('mp_type').value=p.type;
+  document.getElementById('mp_location').value=p.location;
+  document.getElementById('mp_status').value=p.status;
+  document.getElementById('mProyTit').textContent='Editar Proyecto';
+  openModal('modalProyecto');
+}
+
+function saveProyecto(){
+  const idx=v('mp_idx');
+  const name=v('mp_name').trim();
+  if(!name){alert('El nombre del proyecto es obligatorio.');return;}
+  const type=v('mp_type'), location=v('mp_location').trim(), status=v('mp_status');
+  if(idx!==''){
+    const p=PROYECTOS[parseInt(idx)];
+    p.name=name; p.type=type; p.location=location; p.status=status;
+    guardarProyectoEnFirestore(p);
+  } else {
+    const newId=(PROYECTOS.reduce((max,p)=>Math.max(max,p.id||0),0))+1;
+    const p={id:newId,name,type,location,status,config:{},data:emptyProjectData()};
+    PROYECTOS.push(p);
+    guardarProyectoEnFirestore(p);
+  }
+  closeModal('modalProyecto');
+  renderProjectGrid();
 }
 
 function fmtMoney(val,sym='RD$'){
@@ -2247,18 +2266,22 @@ function saveCxc(){
 }
 
 function renderSuplidores(){
-  const _t_tbodySup=document.getElementById('tbodySup'); if(!_t_tbodySup)return; _t_tbodySup.innerHTML=STATE.suplidores.map((s,i)=>`
+  const _t_tbodySup=document.getElementById('tbodySup'); if(!_t_tbodySup)return; _t_tbodySup.innerHTML=STATE.suplidores.map((s,i)=>{
+    const cxp=(PD().gastos||[]).filter(g=>String(g.suplidor_id)===String(s.id)&&g.credito&&!g.pagado).reduce((a,g)=>a+(g.monto||0)+(g.itbis||0),0);
+    return `
     <tr>
       <td>${s.id}</td>
       <td><strong>${s.nombre}</strong></td>
       <td>${s.rnc||'—'}</td>
-      <td><span class="badge b-green">Activo</span></td>
+      <td>${s.tel||'—'}</td>
+      <td>${s.email||'—'}</td>
+      <td>${cxp>0?'RD$ '+fmt(cxp):'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn-icon" onclick="viewSuplidor(${i})"><i class="ti ti-eye"></i></button>
         <button class="btn-icon" onclick="editSuplidor(${i})"><i class="ti ti-edit"></i></button>
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('suplidores',${i},'tbodySup',renderSuplidores)"><i class="ti ti-trash"></i></button>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 
 function viewSuplidor(i){
@@ -2278,6 +2301,7 @@ function viewSuplidor(i){
 }
 
 function newSuplidor(){
+  editingSupIdx = null;
   document.getElementById('sup_nombre').value='';
   document.getElementById('sup_rnc').value='';
   if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value='';
@@ -2287,17 +2311,27 @@ function newSuplidor(){
 }
 
 function editSuplidor(i){
+  editingSupIdx = i;
   s=STATE.suplidores[i];
   document.getElementById('sup_nombre').value=s.nombre;
   document.getElementById('sup_rnc').value=s.rnc||'';
+  if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value=s.tipo||'';
+  if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value=s.tel||'';
+  if(document.getElementById('sup_email')) document.getElementById('sup_email').value=s.email||'';
   openModal('modalSuplidor');
 }
 
 function saveSuplidor(){
-  s={id:Date.now(),nombre:v('sup_nombre'),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email')};
-  STATE.suplidores.unshift(s);
+  s={id: editingSupIdx!==null ? STATE.suplidores[editingSupIdx].id : Date.now(), nombre:v('sup_nombre'),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email')};
+  if(editingSupIdx!==null){
+    STATE.suplidores[editingSupIdx]=s;
+    addLog('Editó suplidor: '+s.nombre);
+    editingSupIdx=null;
+  } else {
+    STATE.suplidores.unshift(s);
+    addLog('Nuevo suplidor: '+s.nombre);
+  }
   populateSupSelect();
-  addLog('Nuevo suplidor: '+s.nombre);
   closeModal('modalSuplidor');renderSuplidores();
 }
 
@@ -2310,10 +2344,10 @@ function renderGastos(){
   populateSupSelect();
   const _t_tbodyGasto=document.getElementById('tbodyGasto'); if(!_t_tbodyGasto)return; _t_tbodyGasto.innerHTML=STATE.gastos.map((g,i)=>`
     <tr>
-      <td>${g.id}</td>
       <td>${g.fecha}</td>
+      <td>${g.factura||g.numncf||'—'}</td>
+      <td>${(STATE.suplidores.find(s=>String(s.id)===String(g.suplidor_id))||{}).nombre||'—'}</td>
       <td>${g.descripcion}</td>
-      <td>${g.ncf?`<span class="badge b-blue">${g.numncf||'✓'}</span>`:'<span class="badge b-gray">No</span>'}</td>
       <td>RD$ ${fmt(g.monto)}</td>
       <td>RD$ ${fmt(g.itbis)}</td>
       <td><strong>RD$ ${fmt(g.monto+g.itbis)}</strong></td>
@@ -2327,7 +2361,8 @@ function renderGastos(){
 }
 
 function newGasto(){
-  document.getElementById('gs_fecha').value=today();
+  editingGastoIdx = null;
+  document.getElementById('gs_fecha').value=todayISO();
   document.getElementById('gs_sup').value='';
   document.getElementById('gs_desc').value='';
   document.getElementById('gs_factura').value='';
@@ -2343,26 +2378,42 @@ function newGasto(){
 }
 
 function editGasto(i){
+  editingGastoIdx = i;
   const g=STATE.gastos[i];
+  document.getElementById('gs_fecha').value=(g.fecha||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)?g.fecha.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/,'$3-$2-$1'):'';
+  document.getElementById('gs_sup').value=g.suplidor_id||'';
   document.getElementById('gs_desc').value=g.descripcion;
+  document.getElementById('gs_factura').value=g.factura||'';
   document.getElementById('gs_monto').value=g.monto;
   document.getElementById('gs_itbis').value=g.itbis;
   document.getElementById('gs_ncf').value=g.ncf?'1':'0';
   document.getElementById('gs_numncf').value=g.numncf||'';
+  document.getElementById('gs_ext').value=g.externo?'1':'0';
+  document.getElementById('gs_cred').value=g.credito?'1':'0';
+  document.getElementById('gs_pag').value=g.pagado?'1':'0';
+  document.getElementById('gs_obs').value=g.obs||'';
   openModal('modalGasto');
 }
 
 function saveGasto(){
   g={
-    id:Date.now(),fecha:v('gs_fecha')||today(),
+    id: editingGastoIdx!==null ? STATE.gastos[editingGastoIdx].id : Date.now(),
+    fecha:fechaES(v('gs_fecha'))||today(),
+    suplidor_id:v('gs_sup'),
     descripcion:v('gs_desc'),factura:v('gs_factura'),
     ncf:v('gs_ncf')==='1',numncf:v('gs_numncf'),
     monto:parseFloat(v('gs_monto'))||0,itbis:parseFloat(v('gs_itbis'))||0,
     externo:v('gs_ext')==='1',credito:v('gs_cred')==='1',
     pagado:v('gs_pag')==='1',obs:v('gs_obs')
   };
-  STATE.gastos.unshift(g);
-  addLog('Nuevo gasto: '+g.descripcion);
+  if(editingGastoIdx!==null){
+    STATE.gastos[editingGastoIdx]=g;
+    addLog('Editó gasto: '+g.descripcion);
+    editingGastoIdx=null;
+  } else {
+    STATE.gastos.unshift(g);
+    addLog('Nuevo gasto: '+g.descripcion);
+  }
   closeModal('modalGasto');renderGastos();
 }
 
@@ -2373,7 +2424,7 @@ function renderFacturas(){
 }
 
 function saveFactura(){
-  f={tipo:v('fc_tipo'),num:v('fc_num'),ncf:v('fc_ncf'),fecha:v('fc_fecha')||today(),ent:v('fc_ent'),concepto:v('fc_conc'),monto:parseFloat(v('fc_monto'))||0,itbis:parseFloat(v('fc_itbis'))||0};
+  f={tipo:v('fc_tipo'),num:v('fc_num'),ncf:v('fc_ncf'),fecha:fechaES(v('fc_fecha'))||today(),ent:v('fc_ent'),concepto:v('fc_conc'),monto:parseFloat(v('fc_monto'))||0,itbis:parseFloat(v('fc_itbis'))||0};
   STATE.facturas.push(f);
   addLog('Nueva factura: '+f.concepto);
   closeModal('modalFactura');renderFacturas();
@@ -2403,6 +2454,7 @@ function renderBancos(){
 }
 
 function newBanco(){
+  editingBancoIdx = null;
   document.getElementById('bk_banco').value='';
   document.getElementById('bk_cuenta').value='';
   document.getElementById('bk_tipo').value='Corriente';
@@ -2414,6 +2466,7 @@ function newBanco(){
 }
 
 function editBanco(i){
+  editingBancoIdx = i;
   const b=STATE.bancos[i];
   document.getElementById('bk_banco').value=b.banco;
   document.getElementById('bk_cuenta').value=b.cuenta;
@@ -2425,26 +2478,32 @@ function editBanco(i){
 }
 
 function saveBanco(){
-  b={id:Date.now(),banco:v('bk_banco'),cuenta:v('bk_cuenta'),tipo:v('bk_tipo'),moneda:v('bk_moneda'),titular:v('bk_titular'),saldo:parseFloat(v('bk_saldo'))||0,estado:v('bk_estado')};
-  STATE.bancos.push(b);
-  addLog('Nueva cuenta bancaria: '+b.banco+' '+b.cuenta);
+  b={id: editingBancoIdx!==null ? STATE.bancos[editingBancoIdx].id : Date.now(), banco:v('bk_banco'),cuenta:v('bk_cuenta'),tipo:v('bk_tipo'),moneda:v('bk_moneda'),titular:v('bk_titular'),saldo:parseFloat(v('bk_saldo'))||0,estado:v('bk_estado')};
+  if(editingBancoIdx!==null){
+    STATE.bancos[editingBancoIdx]=b;
+    addLog('Editó cuenta bancaria: '+b.banco+' '+b.cuenta);
+    editingBancoIdx=null;
+  } else {
+    STATE.bancos.push(b);
+    addLog('Nueva cuenta bancaria: '+b.banco+' '+b.cuenta);
+  }
   closeModal('modalBanco');renderBancos();
 }
 
 function renderEmpleados(){
-  const _t_tbodyEmp=document.getElementById('tbodyEmp'); if(!_t_tbodyEmp)return; _t_tbodyEmp.innerHTML=STATE.empleados.map((e,i)=>`
+  const _t_tbodyEmp=document.getElementById('tbodyEmpleados'); if(!_t_tbodyEmp)return; _t_tbodyEmp.innerHTML=STATE.empleados.map((e,i)=>`
     <tr>
-      <td>${e.id}</td>
       <td><strong>${e.nombres} ${e.ap1||''} ${e.ap2||''}</strong></td>
       <td>${e.doc||'—'}</td>
       <td>${e.puesto||'—'}</td>
       <td><span class="badge b-blue">${e.tipopago||'Mensual'}</span></td>
       <td>RD$ ${fmt(e.sueldo||0)}</td>
+      <td>${e.banco||'—'}</td>
       <td><span class="badge b-green">${e.estado||'Activo'}</span></td>
       <td style="white-space:nowrap">
         <button class="btn-icon" onclick="viewEmpleado(${i})"><i class="ti ti-eye"></i></button>
         <button class="btn-icon" onclick="editEmpleado(${i})"><i class="ti ti-edit"></i></button>
-        <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('empleados',${i},'tbodyEmp',renderEmpleados)"><i class="ti ti-trash"></i></button>
+        <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('empleados',${i},'tbodyEmpleados',renderEmpleados)"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`).join('');
 }
@@ -2469,6 +2528,7 @@ function viewEmpleado(i){
 }
 
 function newEmpleado(){
+  editingEmplIdx = null;
   ['em_nombres','em_ap1','em_ap2','em_doc','em_tel','em_cel','em_puesto','em_prof','em_sueldo','em_banco','em_cuenta','em_fecha','em_email','em_dom'].forEach(id=>{document.getElementById(id).value='';});
   document.getElementById('em_sexo').value='HOMBRE';
   document.getElementById('em_nac').value='DOMINICANA';
@@ -2477,33 +2537,50 @@ function newEmpleado(){
 }
 
 function editEmpleado(i){
+  editingEmplIdx = i;
   e=STATE.empleados[i];
   document.getElementById('em_nombres').value=e.nombres||'';
   document.getElementById('em_ap1').value=e.ap1||'';
   document.getElementById('em_ap2').value=e.ap2||'';
   document.getElementById('em_doc').value=e.doc||'';
+  document.getElementById('em_sexo').value=e.sexo||'HOMBRE';
+  document.getElementById('em_nac').value=e.nac||'DOMINICANA';
+  document.getElementById('em_tel').value=e.tel||'';
+  document.getElementById('em_cel').value=e.cel||'';
   document.getElementById('em_puesto').value=e.puesto||'';
+  document.getElementById('em_prof').value=e.prof||'';
+  document.getElementById('em_tipopago').value=e.tipopago||'Quincenal';
   document.getElementById('em_sueldo').value=e.sueldo||0;
+  document.getElementById('em_banco').value=e.banco||'';
+  document.getElementById('em_cuenta').value=e.cuenta||'';
+  document.getElementById('em_fecha').value=(e.fecha||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)?e.fecha.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/,'$3-$2-$1'):'';
   document.getElementById('em_email').value=e.email||'';
+  document.getElementById('em_dom').value=e.dom||'';
   openModal('modalEmpleado');
 }
 
 function saveEmpleado(){
-  e={id:Date.now(),nombres:v('em_nombres'),ap1:v('em_ap1'),ap2:v('em_ap2'),doc:v('em_doc'),sexo:v('em_sexo'),nac:v('em_nac'),tel:v('em_tel'),cel:v('em_cel'),puesto:v('em_puesto'),prof:v('em_prof'),tipopago:v('em_tipopago'),sueldo:parseFloat(v('em_sueldo'))||0,banco:v('em_banco'),cuenta:v('em_cuenta'),email:v('em_email'),dom:v('em_dom'),estado:'Activo'};
-  STATE.empleados.push(e);
-  addLog('Nuevo empleado: '+e.nombres);
+  e={id: editingEmplIdx!==null ? STATE.empleados[editingEmplIdx].id : Date.now(), nombres:v('em_nombres'),ap1:v('em_ap1'),ap2:v('em_ap2'),doc:v('em_doc'),sexo:v('em_sexo'),nac:v('em_nac'),tel:v('em_tel'),cel:v('em_cel'),puesto:v('em_puesto'),prof:v('em_prof'),tipopago:v('em_tipopago'),sueldo:parseFloat(v('em_sueldo'))||0,banco:v('em_banco'),cuenta:v('em_cuenta'),fecha:fechaES(v('em_fecha'))||today(),email:v('em_email'),dom:v('em_dom'),estado: editingEmplIdx!==null ? STATE.empleados[editingEmplIdx].estado : 'Activo'};
+  if(editingEmplIdx!==null){
+    STATE.empleados[editingEmplIdx]=e;
+    addLog('Editó empleado: '+e.nombres);
+    editingEmplIdx=null;
+  } else {
+    STATE.empleados.push(e);
+    addLog('Nuevo empleado: '+e.nombres);
+  }
   closeModal('modalEmpleado');renderEmpleados();
 }
 
 function renderNomina(){
   const _t_tbodyNomina=document.getElementById('tbodyNomina'); if(!_t_tbodyNomina)return; _t_tbodyNomina.innerHTML=STATE.nomina.map((n,i)=>`
     <tr>
-      <td>${n.id}</td>
+      <td>${n.fecha}</td>
       <td><strong>${n.nombre}</strong></td>
       <td>${n.descripcion||'—'}</td>
-      <td>${n.fecha}</td>
       <td><strong>RD$ ${fmt(n.monto)}</strong></td>
-      <td>${n.obs||'—'}</td>
+      <td>${n.banco||'—'}</td>
+      <td>${n.tipo||'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn-icon" onclick="printRecibo(${i})"><i class="ti ti-printer"></i></button>
         <button class="btn-icon" onclick="editNomina(${i})"><i class="ti ti-edit"></i></button>
@@ -2513,9 +2590,10 @@ function renderNomina(){
 }
 
 function newNomina(){
+  editingNominaIdx = null;
   document.getElementById('nm_nombre').value='';
   document.getElementById('nm_desc').value='';
-  document.getElementById('nm_fecha').value=today();
+  document.getElementById('nm_fecha').value=todayISO();
   document.getElementById('nm_monto').value='';
   document.getElementById('nm_banco').value='BANRESERVAS';
   document.getElementById('nm_tipo').value='Quincenal';
@@ -2524,17 +2602,28 @@ function newNomina(){
 }
 
 function editNomina(i){
+  editingNominaIdx = i;
   n=STATE.nomina[i];
   document.getElementById('nm_nombre').value=n.nombre;
   document.getElementById('nm_desc').value=n.descripcion||'';
+  document.getElementById('nm_fecha').value=(n.fecha||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)?n.fecha.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/,'$3-$2-$1'):'';
   document.getElementById('nm_monto').value=n.monto;
+  if(n.banco) document.getElementById('nm_banco').value=n.banco;
+  if(n.tipo) document.getElementById('nm_tipo').value=n.tipo;
+  document.getElementById('nm_obs').value=n.obs||'';
   openModal('modalNomina');
 }
 
 function saveNomina(){
-  n={id:STATE.nomina.length+1,nombre:v('nm_nombre'),descripcion:v('nm_desc'),fecha:v('nm_fecha')||today(),monto:parseFloat(v('nm_monto'))||0,banco:v('nm_banco'),tipo:v('nm_tipo'),obs:v('nm_obs')};
-  STATE.nomina.push(n);
-  addLog('Pago nómina: '+n.nombre+' RD$ '+fmt(n.monto));
+  n={id: editingNominaIdx!==null ? STATE.nomina[editingNominaIdx].id : STATE.nomina.length+1, nombre:v('nm_nombre'),descripcion:v('nm_desc'),fecha:fechaES(v('nm_fecha'))||today(),monto:parseFloat(v('nm_monto'))||0,banco:v('nm_banco'),tipo:v('nm_tipo'),obs:v('nm_obs')};
+  if(editingNominaIdx!==null){
+    STATE.nomina[editingNominaIdx]=n;
+    addLog('Editó pago nómina: '+n.nombre+' RD$ '+fmt(n.monto));
+    editingNominaIdx=null;
+  } else {
+    STATE.nomina.push(n);
+    addLog('Pago nómina: '+n.nombre+' RD$ '+fmt(n.monto));
+  }
   closeModal('modalNomina');renderNomina();
 }
 
@@ -2710,6 +2799,16 @@ function openModal(id){
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function v(id){return document.getElementById(id)?.value||'';}
 function today(){const d=new Date();return`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;}
+// Convierte una fecha ISO (yyyy-mm-dd, formato de <input type="date">) a formato dominicano dd/mm/yyyy.
+// Si ya viene en otro formato o vacía, la devuelve tal cual.
+function fechaES(iso){
+  if(!iso) return iso;
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+// Fecha de hoy en formato ISO (yyyy-mm-dd), el formato que requieren los <input type="date">.
+function todayISO(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 
 function filterTable(tableId,query){
   const tbody=document.getElementById('tbody'+tableId.replace('tbl',''));
@@ -2737,6 +2836,7 @@ function deleteRow(collection,index,tbodyId,rerender){
 function addLog(act){
   const now=new Date();
   STATE.log.unshift({fecha:today(),hora:now.toTimeString().substring(0,5),user:currentUser||'admin',act});
+  guardarProyectoActual();
 }
 
 function sendWA(tel,nombre){
