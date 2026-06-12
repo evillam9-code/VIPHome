@@ -1894,6 +1894,30 @@ Promise.all([usuariosListos, proyectosListos]).then(()=>{
 // Guarda el proyecto activo en Firestore (con debounce para no saturar de escrituras
 // cuando se hacen varios cambios seguidos, p.ej. crear varios registros).
 let _guardarProyectoTimeout=null;
+let _proyectoUnsub=null;
+// Activa sincronización en tiempo real: si otra persona edita este proyecto desde
+// otro dispositivo/sesión, los cambios se reflejan aquí automáticamente.
+function activarSyncTiempoReal(){
+  if(_proyectoUnsub){ _proyectoUnsub(); _proyectoUnsub=null; }
+  if(!currentProject) return;
+  _proyectoUnsub = db.collection('proyectos').doc(String(currentProject.id)).onSnapshot(snap=>{
+    if(!snap.exists || !currentProject) return;
+    if(snap.metadata && snap.metadata.hasPendingWrites) return; // ignora nuestra propia escritura local (aún no confirmada)
+    try{
+      const remote=JSON.parse(snap.data().valor);
+      if(!remote || !remote.data) return;
+      currentProject.data=remote.data;
+      currentProject.name=remote.name; currentProject.type=remote.type;
+      currentProject.location=remote.location; currentProject.status=remote.status;
+      currentProject.config=remote.config;
+      if(typeof renderAll==='function') renderAll();
+      marcarFirebaseConectado();
+    }catch(e){}
+  }, e=>mostrarErrorFirestore('sincronización en tiempo real',e));
+}
+function desactivarSyncTiempoReal(){
+  if(_proyectoUnsub){ _proyectoUnsub(); _proyectoUnsub=null; }
+}
 
 function guardarProyectoActual(){
   if(!currentProject) return;
@@ -2017,6 +2041,7 @@ function enterProject(){
   showPage('dashboard');
   addLog('Accedió al proyecto '+currentProject.name);
   renderAll();
+  activarSyncTiempoReal();
 }
 
 async function doLogin(){
@@ -2046,6 +2071,7 @@ function showProjects(){
   renderProjectGrid();
 }
 function backToProjects(){
+  desactivarSyncTiempoReal();
   selectedProjId=null;
   currentProject=null;
   hide('appScreen');
@@ -2957,6 +2983,7 @@ function confirmEnter(){
   enterProject();
 }
 function backToProjects(){
+  desactivarSyncTiempoReal();
   selectedProjId=null;
   currentProject=null;
   hide('appScreen');
