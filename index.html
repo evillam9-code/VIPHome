@@ -428,6 +428,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
       </select>
       <button class="btn btn-primary" onclick="newApartamentoMant()"><i class="ti ti-plus"></i> Nuevo</button>
+      <button class="btn btn-outline" onclick="abrirCargaMasivaMonto()"><i class="ti ti-upload"></i> Cargar Monto</button>
       <button class="btn btn-outline" onclick="printModule('Apartamentos','tblAptsMant')"><i class="ti ti-printer"></i> Imprimir</button>
     </div>
     <div class="tbl-wrap">
@@ -1493,6 +1494,24 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal('modalApartamentoMant')">Cancelar</button>
     <button class="btn btn-primary" onclick="saveApartamentoMant()"><i class="ti ti-check"></i> Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- Carga masiva del monto de mantenimiento/gas a todas las unidades del proyecto -->
+<div class="modal-bg" id="modalCargaMonto">
+<div class="modal" style="max-width:420px">
+  <div class="modal-head"><h2>Cargar Monto a Todas las Unidades</h2><button class="modal-close" onclick="closeModal('modalCargaMonto')">×</button></div>
+  <div class="modal-body">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Deja en blanco el que no quieras cambiar. Los pagos ya registrados no se alteran — esto solo cambia el monto de los cargos nuevos hacia adelante.</p>
+    <div class="form-grid">
+      <div class="fg"><label>Mantenimiento</label><input id="cm_monto_mant" placeholder="0.00" oninput="moneyInput(this)"/></div>
+      <div class="fg"><label>Gas</label><input id="cm_monto_gas" placeholder="0.00" oninput="moneyInput(this)"/></div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modalCargaMonto')">Cancelar</button>
+    <button class="btn btn-primary" onclick="aplicarCargaMasivaMonto()"><i class="ti ti-check"></i> Aplicar a todas las unidades</button>
   </div>
 </div>
 </div>
@@ -5453,6 +5472,34 @@ function saveApartamentoMant(){
   addLog((idx!==''?'Editó':'Agregó')+' apartamento '+a.no);
 }
 
+// Carga masiva: aplica un monto de mantenimiento/gas a TODAS las unidades del
+// proyecto de una sola vez, en lugar de editarlas una por una. Los pagos ya
+// registrados no se tocan — solo cambia el monto de los cargos futuros.
+function abrirCargaMasivaMonto(){
+  document.getElementById('cm_monto_mant').value='';
+  document.getElementById('cm_monto_gas').value='';
+  openModal('modalCargaMonto');
+}
+
+function aplicarCargaMasivaMonto(){
+  const mantRaw=document.getElementById('cm_monto_mant').value.trim();
+  const gasRaw=document.getElementById('cm_monto_gas').value.trim();
+  if(!mantRaw&&!gasRaw){alert('Ingrese al menos un monto.');return;}
+  const aptos=PD().apartamentos||[];
+  if(!aptos.length){alert('No hay apartamentos en este proyecto.');return;}
+  const mant=getMoneyVal('cm_monto_mant');
+  const gas=getMoneyVal('cm_monto_gas');
+  if(!confirm(`¿Aplicar este monto a las ${aptos.length} unidades del proyecto? Los pagos ya registrados no se alteran.`))return;
+  aptos.forEach(a=>{
+    if(mantRaw) a.monto_mant=mant;
+    if(gasRaw) a.monto_gas=gas;
+  });
+  closeModal('modalCargaMonto');
+  renderApartamentos();
+  if(typeof renderCxc==='function') renderCxc();
+  addLog('Cargó monto masivo a '+aptos.length+' unidades'+(mantRaw?' — Mantenimiento RD$ '+fmt(mant):'')+(gasRaw?' — Gas RD$ '+fmt(gas):''));
+}
+
 // Patch verPlanPagosVenta to accept venta object directly
 const _origVerPlan = typeof verPlanPagosVenta==='function'?verPlanPagosVenta:null;
 function verPlanPagosVenta(i, ventaObj){
@@ -5812,13 +5859,17 @@ function estadoCargoMant(mes,anio,pagado,diasGracia){
 
 // Arma un cargo mensual para un apartamento+concepto, cruzando con el historial de
 // pagos en PD().cxc (una entrada por apto+concepto, con pagos_mensuales por mes/año).
+// Si el mes ya está pagado, se muestra el monto que REALMENTE se cobró en ese pago,
+// no el monto vigente hoy — así, si el monto de mantenimiento cambia más adelante,
+// los meses ya pagados no se alteran, solo los cargos nuevos usan el monto actual.
 function construirCargoMant(a,concepto,monto,cliente,clienteTel,clienteWA,clienteDoc,mes,anio,diasGracia){
   const cxcIdx=(PD().cxc||[]).findIndex(c=>c.op===a.no&&(c.concepto===concepto||(!c.concepto&&concepto==='Mantenimiento')));
   const c=cxcIdx>=0?PD().cxc[cxcIdx]:null;
   const pago=(c?.pagos_mensuales||[]).find(p=>p.mes===mes&&(p.anio||new Date().getFullYear())===anio);
+  const montoFinal = pago ? (pago.monto||monto) : monto;
   return {
     apt_no:a.no, concepto, cliente:cliente||'—', clienteTel:clienteTel||'', clienteWA:clienteWA||'', clienteDoc:clienteDoc||'',
-    monto, mes, anio, pagado:!!pago, cxc_idx:cxcIdx,
+    monto: montoFinal, mes, anio, pagado:!!pago, cxc_idx:cxcIdx,
     estado: estadoCargoMant(mes,anio,!!pago,diasGracia)
   };
 }
