@@ -825,11 +825,22 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <!-- USUARIOS -->
   <div id="tabAdminUsers" class="at-panel" style="display:none">
     <div class="bar" style="margin-top:1rem">
+      <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar usuario..." oninput="applyTableFilters('tblUsuarios')"/></div>
+      <select class="filter f-status" onchange="applyTableFilters('tblUsuarios')">
+        <option value="">Todos</option><option>Activo</option><option>Inactivo</option>
+      </select>
+      <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblUsuarios')" title="Desde"/><span class="filter-date-sep">–</span>
+      <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblUsuarios')" title="Hasta"/>
+      <select class="filter f-periodo" onchange="setPeriodo('tblUsuarios',this.value)">
+        <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+        <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+      </select>
       <button class="btn btn-primary" onclick="newUsuario()"><i class="ti ti-plus"></i> Nuevo Usuario</button>
+      <button class="btn btn-outline" onclick="exportTable('tblUsuarios','Usuarios')"><i class="ti ti-download"></i> Exportar</button>
     </div>
     <div class="tbl-wrap">
       <table id="tblUsuarios">
-        <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Módulos con acceso</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Módulos con acceso</th><th>Fecha</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody id="tbodyUsuarios"></tbody>
       </table>
     </div>
@@ -4265,10 +4276,11 @@ function renderUsuarios(){
       }).filter(Boolean);
       acceso=nombres.length?nombres.join(', '):'Sin proyectos asignados';
     } else acceso='Todos los proyectos (heredado)';
-    return `<tr>
+    return `<tr data-fecha="${toISODate(u.fecha_creacion)}">
       <td><strong>${u.nombre}</strong></td><td>${u.user}</td>
       <td><span class="badge b-blue">${u.rol}</span></td>
       <td style="font-size:11px;max-width:280px">${acceso}</td>
+      <td><small>${u.fecha_creacion||'—'}</small></td>
       <td><span class="badge ${u.estado==='Activo'?'b-green':'b-red'}">${u.estado}</span></td>
       <td style="white-space:nowrap">
         <button class="btn btn-outline btn-sm" onclick="editUsuario(${i})"><i class="ti ti-edit"></i> Editar</button>
@@ -4312,10 +4324,13 @@ function buildProyectosTable(proyectosMap,legacyPermisos){
     const perms=(proyectosMap&&proyectosMap[p.id])||(esLegacy?legacyPermisos:null)||emptyPermisos();
     const modoLabel=p.modo==='mantenimiento'?'Mantenimiento':'Construcción/Ventas';
     return `<div style="margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
-        <input type="checkbox" class="mu_proy_check" data-proj="${p.id}" onchange="toggleProyPerm(${p.id},this.checked)" ${asignado?'checked':''}>
-        ${p.name} <span style="font-weight:400;font-size:11px;color:var(--muted)">· ${modoLabel}</span>
-      </label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;flex:1;">
+          <input type="checkbox" class="mu_proy_check" data-proj="${p.id}" onchange="toggleProyPerm(${p.id},this.checked)" ${asignado?'checked':''}>
+          ${p.name} <span style="font-weight:400;font-size:11px;color:var(--muted)">· ${modoLabel}</span>
+        </label>
+        <button type="button" class="btn btn-outline btn-sm" title="Marca este proyecto y le da todos los permisos de una vez" onclick="marcarAdminProyecto(${p.id})"><i class="ti ti-shield-check"></i> Admin. proyecto</button>
+      </div>
       <div class="tbl-wrap" id="mu_proy_tbl_${p.id}" style="display:${asignado?'block':'none'};margin:6px 0 0 24px;">
         <table style="font-size:11px"><thead><tr><th>Módulo</th><th>Ver</th><th>Crear</th><th>Editar</th><th>Eliminar</th></tr></thead>
         <tbody>${MODULOS.filter(([k])=>k!=='usuarios').map(([k,label])=>{
@@ -4332,6 +4347,14 @@ function buildProyectosTable(proyectosMap,legacyPermisos){
 function toggleProyPerm(projId,checked){
   const tbl=document.getElementById('mu_proy_tbl_'+projId);
   if(tbl) tbl.style.display=checked?'block':'none';
+}
+
+// Atajo: marca el proyecto como asignado y le da acceso total (ver/crear/editar/
+// eliminar en todos los módulos) de una sola vez, en vez de marcar casilla por casilla.
+function marcarAdminProyecto(projId){
+  const checkbox=document.querySelector(`.mu_proy_check[data-proj="${projId}"]`);
+  if(checkbox){ checkbox.checked=true; toggleProyPerm(projId,true); }
+  document.querySelectorAll(`.mu_proy_perm[data-proj="${projId}"]`).forEach(c=>{ if(!c.disabled) c.checked=true; });
 }
 
 // Activa/desactiva la sección de proyectos según el rol elegido.
@@ -4406,6 +4429,7 @@ function saveUsuario(){
     id: idxNum>=0 ? USUARIOS[idxNum].id : Date.now(),
     nombre,user,pass,rol,
     estado:document.getElementById('mu_estado').value,
+    fecha_creacion: idxNum>=0 ? (USUARIOS[idxNum].fecha_creacion||todayISO()) : todayISO(),
     proyectos
   };
   if(idxNum>=0) USUARIOS[idxNum]=u; else USUARIOS.push(u);
@@ -5480,6 +5504,7 @@ function saveApartamentoMant(){
 // proyecto de una sola vez, en lugar de editarlas una por una. Los pagos ya
 // registrados no se tocan — solo cambia el monto de los cargos futuros.
 function abrirCargaMasivaMonto(){
+  if(!puedeHacer('editar')){alert('No tiene permisos para editar apartamentos.');return;}
   document.getElementById('cm_monto_mant').value='';
   document.getElementById('cm_monto_gas').value='';
   openModal('modalCargaMonto');
@@ -5944,6 +5969,7 @@ function renderCxcMant(){
     } else { alertaEl.style.display='none'; alertaEl.innerHTML=''; }
   }
 
+  const canEdit=puedeHacer('editar');
   const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
   tbody.innerHTML = rows.length ? rows.map(r=>`<tr>
     <td><strong>${r.apt_no}</strong></td>
@@ -5952,7 +5978,7 @@ function renderCxcMant(){
     <td>RD$ ${fmt(r.monto)}</td>
     <td><span class="badge ${st[r.estado]||'b-gray'}">${r.estado}</span></td>
     <td style="white-space:nowrap">
-      ${r.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
+      ${canEdit&&r.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
       ${r.cxc_idx>=0?`<button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-history"></i></button>`:''}
       ${(r.estado==='Vencida'||r.estado==='Pendiente')&&r.clienteWA?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:''}
     </td>
@@ -6216,9 +6242,10 @@ function renderVencidas(){
     tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-circle-check"></i><p>No hay cuotas vencidas ni por vencer</p></td></tr>';
     return;
   }
+  const canEdit=puedeHacer('editar');
   const st={Vencida:'b-red','Por vencer':'b-yellow'};
   tbody.innerHTML = rows.map(r=>{
-    const pagarBtn = r.esMant
+    const pagarBtn = !canEdit ? '' : r.esMant
       ? `<button class="btn-icon" title="Registrar pago" onclick="abrirPagoMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`
       : (r.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${r.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'');
     const waBtn = !r.telWA ? '' : r.esMant
