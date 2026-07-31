@@ -1797,6 +1797,12 @@ function applyNavPermissions(){
   });
   const adminEl=document.querySelector(`.nav-item[onclick*="showPage('admin')"]`);
   if(adminEl) adminEl.style.display = (u.rol==='Administrador') ? '' : 'none';
+  if(currentProject && currentProject.modo==='mantenimiento'){
+    ['clientes','contratos','ventas','cxp'].forEach(k=>{
+      const el=document.querySelector(`.nav-item[onclick*="showPage('${k}')"]`);
+      if(el) el.style.display='none';
+    });
+  }
 }
 
 function emptyProjectData(){
@@ -1867,7 +1873,7 @@ async function cargarProyectosDesdeFirestore(){
       // Primera vez: sembrar Firestore con los proyectos/datos de ejemplo incluidos en el código
       await Promise.all(PROYECTOS.map(p=>
         db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
-          id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+          id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,modo:p.modo,config:p.config,data:p.data
         })})
       ));
     } else {
@@ -1909,6 +1915,7 @@ function activarSyncTiempoReal(){
       currentProject.data=remote.data;
       currentProject.name=remote.name; currentProject.type=remote.type;
       currentProject.location=remote.location; currentProject.status=remote.status;
+      currentProject.modo=remote.modo;
       currentProject.config=remote.config;
       if(typeof renderAll==='function') renderAll();
       marcarFirebaseConectado();
@@ -1927,7 +1934,7 @@ function guardarProyectoActual(){
     const p=currentProject;
     if(!p) return;
     db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
-      id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+      id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,modo:p.modo,config:p.config,data:p.data
     })}).then(()=>{
       marcarFirebaseConectado();
     }).catch(e=>{
@@ -1942,7 +1949,7 @@ function eliminarProyectoDeFirestore(id){
 function guardarProyectoEnFirestore(p){
   marcarFirebaseGuardando();
   db.collection('proyectos').doc(String(p.id)).set({valor: JSON.stringify({
-    id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,config:p.config,data:p.data
+    id:p.id,name:p.name,type:p.type,location:p.location,status:p.status,modo:p.modo,config:p.config,data:p.data
   })}).then(()=>{
     marcarFirebaseConectado();
   }).catch(e=>{
@@ -2548,7 +2555,8 @@ function saveFactura(){
 function renderBancos(){
   const rdTotal=STATE.bancos.filter(b=>b.moneda==='RD$').reduce((s,b)=>s+b.saldo,0);
   const usdTotal=STATE.bancos.filter(b=>b.moneda==='USD$').reduce((s,b)=>s+b.saldo,0);
-  document.getElementById('bancoStats').innerHTML=`
+  const _bancoStats=document.getElementById('bancoStats');
+  if(_bancoStats) _bancoStats.innerHTML=`
     <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-currency"></i></div><div class="stat-label">Saldo total RD$</div><div class="stat-val">RD$ ${fmt(rdTotal)}</div><div class="stat-sub">${STATE.bancos.filter(b=>b.moneda==='RD$').length} cuentas</div></div>
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-currency-dollar"></i></div><div class="stat-label">Saldo total USD$</div><div class="stat-val">$${fmt(usdTotal)}</div><div class="stat-sub">${STATE.bancos.filter(b=>b.moneda==='USD$').length} cuentas</div></div>
   `;
