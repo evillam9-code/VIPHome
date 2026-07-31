@@ -445,7 +445,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <table id="tblAptsMant">
         <thead><tr>
           <th>No.</th><th>Propietario</th><th>Contacto</th><th>Estado</th><th>Inquilino</th>
-          <th>Mantenimiento</th><th>Gas</th><th>Acciones</th>
+          <th>Mantenimiento</th><th>Gas</th><th>Total Pagado</th><th>Acciones</th>
         </tr></thead>
         <tbody id="tbodyAptsMant"></tbody>
       </table>
@@ -5567,6 +5567,16 @@ function renderApartamentosVentas(){
   : '<tr><td colspan="8" class="empty"><i class="ti ti-building"></i><p>Sin apartamentos registrados</p></td></tr>';
 }
 
+// Suma todo lo realmente cobrado a una unidad (mantenimiento + gas + otros montos),
+// a través de todas las entradas de CxC ligadas a ese apto y todos sus meses pagados.
+function totalPagadoApto(apt_no){
+  let total=0;
+  (PD().cxc||[]).filter(c=>c.op===apt_no).forEach(c=>{
+    (c.pagos_mensuales||[]).forEach(pg=>{ if(pg.monto>0) total+=pg.monto; });
+  });
+  return total;
+}
+
 function renderApartamentosMant(){
   const tbody = document.getElementById('tbodyAptsMant');
   if(!tbody) return;
@@ -5584,12 +5594,13 @@ function renderApartamentosMant(){
     <td>${a.estado==='Alquilado'?(a.inq_nombre||'—'):'—'}</td>
     <td>${sym} ${fmt(a.monto_mant||0)}</td>
     <td>${sym} ${fmt(a.monto_gas||0)}</td>
+    <td><strong style="color:var(--green-dark)">RD$ ${fmt(totalPagadoApto(a.no))}</strong></td>
     <td style="white-space:nowrap">
       ${canEdit?`<button class="btn-icon" onclick="editApartamentoMant(${i})"><i class="ti ti-edit"></i></button>`:''}
       ${canDel?`<button class="btn-icon" onclick="deleteApartamento(${i})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
     </td>
   </tr>`;}).join('')
-  : '<tr><td colspan="8" class="empty"><i class="ti ti-building"></i><p>Sin apartamentos registrados</p></td></tr>';
+  : '<tr><td colspan="9" class="empty"><i class="ti ti-building"></i><p>Sin apartamentos registrados</p></td></tr>';
 }
 
 // Alterna la sección de Inquilino en el modal de apartamento de mantenimiento
@@ -6139,6 +6150,16 @@ function cargosMantenimiento(mes,anio){
   return rows;
 }
 
+// Suma lo realmente cobrado en los 12 meses de un año (no solo el mes seleccionado),
+// para la tarjeta "Total Cobrado" del año en CxC.
+function totalCobradoAnio(anio){
+  let total=0;
+  MESES_ES.forEach(mes=>{
+    cargosMantenimiento(mes,anio).forEach(r=>{ if(r.estado==='Pagada') total+=r.monto; });
+  });
+  return total;
+}
+
 function renderCxcMant(){
   const tbody=document.getElementById('tbodyCxcMant');
   if(!tbody) return;
@@ -6160,9 +6181,11 @@ function renderCxcMant(){
   const pendientes=rows.filter(r=>r.estado!=='Pagada');
   const totalCobrado=pagadas.reduce((s,r)=>s+r.monto,0);
   const totalPendiente=pendientes.reduce((s,r)=>s+r.monto,0);
+  const totalAnio=totalCobradoAnio(anio);
 
   const statsEl=document.getElementById('cxcMantStats');
   if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Cobrado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
     <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
     <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">Requieren atención</div></div>
