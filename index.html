@@ -332,6 +332,9 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <div class="nav-item" onclick="showPage('contratos')"><i class="ti ti-file-text"></i> Contratos</div>
         <div class="nav-item" onclick="showPage('ventas')"><i class="ti ti-shopping-cart"></i> Ventas</div>
         <div class="nav-item" onclick="showPage('cxc')"><i class="ti ti-credit-card"></i> CxC / Cobros</div>
+        <div class="nav-item" onclick="showPage('vencidas')"><i class="ti ti-alert-triangle"></i> Cuotas Vencidas
+          <span id="navVencidasCount" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;">0</span>
+        </div>
         <div class="nav-section">Gastos</div>
         <div class="nav-item" onclick="showPage('suplidores')"><i class="ti ti-building-store"></i> Suplidores</div>
         <div class="nav-item" onclick="showPage('gastos')"><i class="ti ti-receipt"></i> Gastos</div>
@@ -533,6 +536,23 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   </div>
 </div>
 
+<!-- ── CUOTAS VENCIDAS ── -->
+<div id="page-vencidas" class="page">
+  <div class="bar">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblVencidas')"/></div>
+    <span class="badge b-red" id="vencidasCount">0</span>
+    <button class="btn btn-outline" onclick="printModule('Cuotas Vencidas','tblVencidas')"><i class="ti ti-printer"></i> Imprimir</button>
+  </div>
+  <div class="tbl-wrap">
+    <table id="tblVencidas">
+      <thead><tr>
+        <th>No. Op.</th><th>Cliente</th><th>Concepto</th><th>Cuota</th>
+        <th>Saldo</th><th>Próx. Venc.</th><th>Atraso</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyVencidas"></tbody>
+    </table>
+  </div>
+</div>
 
 <!-- ── SUPLIDORES ── -->
 <div id="page-suplidores" class="page">
@@ -1779,6 +1799,7 @@ const MODULOS = [
   ['contratos','Contratos'],
   ['ventas','Ventas'],
   ['cxc','CxC / Cobros'],
+  ['vencidas','Cuotas Vencidas'],
   ['suplidores','Suplidores'],
   ['gastos','Gastos'],
   ['cxp','CxP / Facturas'],
@@ -2384,7 +2405,7 @@ document.getElementById('uUser').addEventListener('keydown',e=>{if(e.key==='Ente
 
 const pageTitles = {
   dashboard:'Dashboard', apartamentos:'Apartamentos', clientes:'Clientes',
-  ventas:'Ventas', cxc:'CxC / Cobros', suplidores:'Suplidores',
+  ventas:'Ventas', cxc:'CxC / Cobros', vencidas:'Cuotas Vencidas', suplidores:'Suplidores',
   gastos:'Gastos', cxp:'CxP / Facturas', facturas:'Facturas',
   bancos:'Cuentas Bancarias', empleados:'Empleados', nomina:'Nómina',
   informes:'Informes Mensuales', admin:'Administración'
@@ -3317,9 +3338,15 @@ function openPago(i){
   openModal('modalPago');
 }
 
+// Registra el pago sobre la cuota de CxC referenciada por currentPagoRef (índice en
+// PD().cxc, fijado por abrirPagoCxcIdx/abrirPagoVenta). Antes esta función leía
+// STATE.clientes[currentPagoRef], un modelo distinto que dejó de usarse: el pago
+// nunca reducía el saldo pendiente real de la cuota. Ahora actualiza pagado_total y
+// cuotas_pagadas en la cuota, y si viene de una venta, también venta.pagado.
 function savePago(){
   if(currentPagoRef===null)return;
-  c=STATE.clientes[currentPagoRef];
+  const c=(PD().cxc||[])[currentPagoRef];
+  if(!c){alert('No se encontró la cuota a pagar.');return;}
   const bancoId=document.getElementById('pago_banco').value;
   const monto=getMoneyVal('pago_monto');
   const mora=getMoneyVal('pago_monto_mora');
@@ -3327,7 +3354,7 @@ function savePago(){
   if(!bancoId){alert('Seleccione una cuenta bancaria destino.');return;}
   if(!monto){alert('Ingrese el monto del pago.');return;}
   // Update banco saldo (entrada)
-  const banco=STATE.bancos.find(b=>b.id==bancoId);
+  const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
   if(banco) banco.saldo+=total;
   const pago={
     fecha:document.getElementById('pago_fecha').value,
@@ -3341,15 +3368,27 @@ function savePago(){
   };
   if(!c.pagos) c.pagos=[];
   c.pagos.push(pago);
+  c.pagado_total=(c.pagado_total||0)+monto;
+  c.cuotas_pagadas=(c.cuotas_pagadas||0)+1;
+  c.estado=c.pagado_total>=(c.monto_total||0)?'Pagado':'Pendiente';
+  if(c.origen==='venta'){
+    const venta=(PD().ventas||[]).find(v=>v.no===c.op);
+    if(venta){
+      venta.pagado=(parseFloat(venta.pagado)||0)+monto;
+      if(venta.pagado>=parseFloat(venta.precio||0)) venta.estado='Entregado';
+    }
+  }
   closeModal('modalPago');
-  renderClientes();
+  renderCxc();
+  if(typeof renderVentas==='function') renderVentas();
   if(typeof renderBancos==='function') renderBancos();
-  addLog('Pago registrado cliente '+c.nombres+' cuota #'+pago.ncuota+' '+fmtMoney(total,''));
+  addLog('Pago registrado — '+(c.cliente||'')+' cuota #'+pago.ncuota+' US$ '+fmt(total));
 }
 
 function generarRecibo(){
   if(currentPagoRef===null)return;
-  c=STATE.clientes[currentPagoRef];
+  const c=(PD().cxc||[])[currentPagoRef];
+  if(!c)return;
   const fecha=document.getElementById('pago_fecha').value;
   monto=getMoneyVal('pago_monto');
   mora=getMoneyVal('pago_monto_mora');
@@ -3357,7 +3396,7 @@ function generarRecibo(){
   const metodo=document.getElementById('pago_metodo').value;
   const ncuota=document.getElementById('pago_ncuota').value;
   const ref=document.getElementById('pago_referencia').value;
-  sym=c.moneda==='RD'?'RD$':'US$';
+  sym=(c.moneda==='RD'||c.moneda==='PESOS')?'RD$':'US$';
   const projName=currentProject?currentProject.name:'VIP Home';
   const recNo='VIP-'+String(Date.now()).slice(-6);
   // Fill both copies
@@ -3366,9 +3405,9 @@ function generarRecibo(){
     document.getElementById('rec_no'+n).textContent='No. '+recNo;
     document.getElementById('rec_proy'+n).textContent=projName;
     document.getElementById('rec_fecha'+n).textContent=fecha;
-    document.getElementById('rec_cliente'+n).textContent=c.nombres+' '+c.apellidos;
-    document.getElementById('rec_doc'+n).textContent=c.cedula;
-    document.getElementById('rec_unidad'+n).textContent=c.unidad||'—';
+    document.getElementById('rec_cliente'+n).textContent=c.cliente||'—';
+    document.getElementById('rec_doc'+n).textContent=c.cliente_doc||'—';
+    document.getElementById('rec_unidad'+n).textContent=c.op||'—';
     document.getElementById('rec_ncuota'+n).textContent='#'+ncuota;
     document.getElementById('rec_metodo'+n).textContent=metodo;
     document.getElementById('rec_ref'+n).textContent=ref||'—';
@@ -4981,29 +5020,34 @@ function verContratoVenta(i){
   else{alert('Contrato no encontrado.');}
 }
 
+// Abre el modal de pago para una cuota de CxC dado su índice real en PD().cxc.
+// Función común usada tanto desde Ventas (vía abrirPagoVenta) como directamente
+// desde CxC / Cuotas Vencidas para cuotas manuales.
+function abrirPagoCxcIdx(cxcIdx){
+  const c = (PD().cxc||[])[cxcIdx];
+  if(!c) return;
+  currentPagoRef = cxcIdx;
+  document.getElementById('pago_cliente_nombre').textContent = (c.cliente||'—')+(c.concepto?' · '+c.concepto:'');
+  document.getElementById('pago_cuota_monto').textContent = 'US$ '+fmt(c.cuota||0);
+  document.getElementById('pago_saldo_pendiente').textContent = 'US$ '+fmt((c.monto_total||0)-(c.pagado_total||0));
+  document.getElementById('pago_fecha').value = todayISO();
+  document.getElementById('pago_ncuota').value = (c.cuotas_pagadas||0)+1;
+  setMoneyVal('pago_monto', c.cuota||0);
+  setMoneyVal('pago_monto_mora', 0);
+  document.getElementById('pago_referencia').value='';
+  document.getElementById('pago_obs').value='';
+  document.getElementById('pago_comp_preview').style.display='none';
+  const bsel=document.getElementById('pago_banco');
+  bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>';
+  (PD().bancos||[]).forEach(b=>{bsel.innerHTML+=`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda}) — US$ ${fmt(b.saldo)}</option>`;});
+  openModal('modalPago');
+}
+
 function abrirPagoVenta(ventaIdx){
   const v = (PD().ventas||[])[ventaIdx];
   if(!v) return;
-  // Find CxC entry
   const cxcIdx = (PD().cxc||[]).findIndex(c=>c.op===v.no);
-  if(cxcIdx>=0){
-    currentPagoRef = cxcIdx;
-    const c = PD().cxc[cxcIdx];
-    document.getElementById('pago_cliente_nombre').textContent = v.cliente_nombre+' · Apt. '+v.apt_no;
-    document.getElementById('pago_cuota_monto').textContent = 'US$ '+fmt(c.cuota);
-    document.getElementById('pago_saldo_pendiente').textContent = 'US$ '+fmt((c.monto_total||0)-(c.pagado_total||0));
-    document.getElementById('pago_fecha').value = new Date().toISOString().split('T')[0];
-    document.getElementById('pago_ncuota').value = (c.cuotas_pagadas||0)+1;
-    setMoneyVal('pago_monto', c.cuota||0);
-    setMoneyVal('pago_monto_mora', 0);
-    document.getElementById('pago_referencia').value='';
-    document.getElementById('pago_obs').value='';
-    document.getElementById('pago_comp_preview').style.display='none';
-    const bsel=document.getElementById('pago_banco');
-    bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>';
-    (PD().bancos||[]).forEach(b=>{bsel.innerHTML+=`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda}) — US$ ${fmt(b.saldo)}</option>`;});
-    openModal('modalPago');
-  }
+  if(cxcIdx>=0) abrirPagoCxcIdx(cxcIdx);
 }
 
 function editVentaEstado(i){
@@ -5242,15 +5286,44 @@ function renderVentas(){
 }
 
 // ═══ RENDER CxC with DASHBOARD ═══
-function renderCxc(){
-  const tbody = document.getElementById('tbodyCxc');
-  if(!tbody) return;
-  
-  // Build combined list: cxc manual + from ventas
+// Suma n períodos (según tipo_cuota) a una fecha ISO. Usado para calcular la
+// próxima fecha de vencimiento esperada a partir de cuántas cuotas ya se pagaron.
+function sumarPeriodos(fechaISO,tipo,n){
+  const iso=toISODate(fechaISO);
+  if(!iso) return '';
+  const d=new Date(iso+'T00:00:00');
+  const t=(tipo||'Mensual').toLowerCase();
+  if(t.includes('quincen')) d.setDate(d.getDate()+15*n);
+  else if(t.includes('semanal')) d.setDate(d.getDate()+7*n);
+  else if(t.includes('anual')) d.setFullYear(d.getFullYear()+n);
+  else d.setMonth(d.getMonth()+n);
+  return isoDate(d);
+}
+
+// Determina si una fila de CxC (de buildCxcRows) está vencida: su próxima cuota
+// esperada (fecha_venc avanzada según cuotas_pagadas) más los días de gracia del
+// proyecto ya pasó, y todavía queda saldo pendiente.
+function calcularVencimientoCxc(row){
+  const saldo=(row.monto_total||0)-(row.pagado_total||0);
+  const proximoVenc=sumarPeriodos(row.fecha_venc, row.tipo_cuota, row.cuotas_pagadas||0);
+  if(saldo<=0||!proximoVenc) return {vencida:false,diasAtraso:0,proximoVenc:proximoVenc||''};
+  const diasGracia=parseInt(currentProject?.config?.dias_gracia)||5;
+  const limite=new Date(proximoVenc+'T00:00:00');
+  limite.setDate(limite.getDate()+diasGracia);
+  const hoy=new Date();
+  const vencida=hoy>limite;
+  const diasAtraso=vencida?Math.floor((hoy-limite)/86400000):0;
+  return {vencida,diasAtraso,proximoVenc};
+}
+
+// Construye la lista combinada de CxC: una fila por venta activa + las cuotas
+// manuales. Cada fila trae cxc_idx = su índice real en PD().cxc, que es lo que
+// necesitan abrirPagoCxcIdx/deleteCxc (antes se usaba la posición dentro de la
+// lista combinada, que no coincidía con el índice real y podía pagar/eliminar
+// el registro equivocado).
+function buildCxcRows(){
   const manual = (PD().cxc||[]);
   const ventas = (PD().ventas||[]);
-  
-  // One CxC row per venta (from fins/importado)
   const ventaRows = ventas.filter(v=>v.estado!=='Cancelado').map(v=>({
     op: v.no,
     cliente: v.cliente_nombre||'—',
@@ -5262,18 +5335,24 @@ function renderCxc(){
     num_cuotas: v.num_cuotas||0,
     tipo_cuota: v.tipo_cuota||'Mensual',
     pagado_total: parseFloat(v.pagado||0),
+    cuotas_pagadas: (manual.find(c=>c.op===v.no)||{}).cuotas_pagadas||0,
     fecha_venc: v.fecha_ini||'—',
     estado: v.estado==='Entregado'?'Pagado':
             v.estado==='Cancelado'?'Vencido':'Pendiente',
     origen: 'venta',
-    venta_idx: ventas.indexOf(v)
+    venta_idx: ventas.indexOf(v),
+    cxc_idx: manual.findIndex(c=>c.op===v.no)
   }));
-  
-  // Manual CxC (not already covered by ventas)
-  const manualRows = manual.filter(m=>m.origen==='manual'||!m.origen);
-  
-  const all = [...ventaRows, ...manualRows];
-  
+  const manualRows = manual.map((m,i)=>({...m,cxc_idx:i}))
+    .filter(m=>m.origen==='manual'||!m.origen);
+  return [...ventaRows, ...manualRows];
+}
+
+function renderCxc(){
+  const tbody = document.getElementById('tbodyCxc');
+  if(!tbody) return;
+  const all = buildCxcRows();
+
   // ── DASHBOARD TOTALS ──
   const totalFinanciado = all.reduce((s,r)=>s+parseFloat(r.monto_total||0),0);
   const totalPagado     = all.reduce((s,r)=>s+parseFloat(r.pagado_total||0),0);
@@ -5328,7 +5407,7 @@ function renderCxc(){
   }
   
   const st={Pendiente:'b-yellow',Pagado:'b-green',Vencido:'b-red','En proceso':'b-blue'};
-  tbody.innerHTML = all.map((cx,i)=>{
+  tbody.innerHTML = all.map((cx)=>{
     const saldo = (cx.monto_total||0)-(cx.pagado_total||0);
     const pct = cx.monto_total>0?Math.min(100,Math.round((cx.pagado_total||0)/cx.monto_total*100)):0;
     return `<tr data-fecha="${toISODate(cx.fecha_venc)}">
@@ -5348,14 +5427,50 @@ function renderCxc(){
       <td><small>${cx.fecha_venc||'—'}</small></td>
       <td><span class="badge ${st[cx.estado]||'b-gray'}">${cx.estado||'Pendiente'}</span></td>
       <td style="white-space:nowrap">
-        ${cx.origen==='venta'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoVenta(${cx.venta_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
-        ${cx.origen==='manual'&&puedeHacer('eliminar')?`<button class="btn-icon" onclick="deleteCxc(${i})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
+        ${saldo>0&&cx.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${cx.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
+        ${cx.origen==='manual'&&puedeHacer('eliminar')?`<button class="btn-icon" onclick="deleteCxc(${cx.cxc_idx})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  if(typeof renderVencidas==='function') renderVencidas();
+}
+
+// Módulo "Cuotas Vencidas": reusa buildCxcRows() y muestra solo las que están
+// realmente atrasadas (saldo pendiente + fecha esperada + días de gracia ya pasada),
+// ordenadas de mayor a menor atraso.
+function renderVencidas(){
+  const tbody = document.getElementById('tbodyVencidas');
+  if(!tbody) return;
+  const rows = buildCxcRows()
+    .map(r=>({...r, ...calcularVencimientoCxc(r)}))
+    .filter(r=>r.vencida)
+    .sort((a,b)=>b.diasAtraso-a.diasAtraso);
+  const countEl=document.getElementById('vencidasCount');
+  if(countEl) countEl.textContent=rows.length;
+  const navBadge=document.getElementById('navVencidasCount');
+  if(navBadge){ navBadge.textContent=rows.length; navBadge.style.display=rows.length?'':'none'; }
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-circle-check"></i><p>No hay cuotas vencidas</p></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r=>{
+    const saldo=(r.monto_total||0)-(r.pagado_total||0);
+    return `<tr>
+      <td><strong>${r.op||'—'}</strong></td>
+      <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.cliente_doc||''}</small></td>
+      <td>${r.concepto||'—'}</td>
+      <td>US$ ${fmt(r.cuota||0)}</td>
+      <td style="color:var(--danger)"><strong>US$ ${fmt(saldo)}</strong></td>
+      <td><small>${r.proximoVenc||'—'}</small></td>
+      <td><span class="badge b-red">${r.diasAtraso} día${r.diasAtraso!==1?'s':''}</span></td>
+      <td style="white-space:nowrap">
+        ${r.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${r.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
       </td>
     </tr>`;
   }).join('');
 }
 
-// ═══ REMOVE REF FROM CLIENTES TABLE ═══  
+// ═══ REMOVE REF FROM CLIENTES TABLE ═══
 function renderClientes(){
   const tbody = document.getElementById('tbodyClientes');
   if(!tbody) return;
@@ -5402,6 +5517,7 @@ function renderAll(){
   if(typeof renderContratos==='function') renderContratos();
   if(typeof renderVentas==='function') renderVentas();
   if(typeof renderCxc==='function') renderCxc();
+  if(typeof renderVencidas==='function') renderVencidas();
   if(typeof renderSuplidores==='function') renderSuplidores();
   if(typeof renderGastos==='function') renderGastos();
   if(typeof renderCxp==='function') renderCxp();
