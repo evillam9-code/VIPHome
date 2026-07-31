@@ -376,32 +376,15 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         </div>
       </div>
       <div id="dashMantenimiento" style="display:none">
-        <div class="stat-grid" id="mantStats"></div>
-        <div class="card" style="margin-top:1rem">
-          <div class="card-title">Cobro de mantenimiento pendiente</div>
-          <div class="bar">
-            <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar unidad o propietario..." oninput="filterTable('tblMantPend',this.value)"/></div>
-            <select class="filter" id="mantMes" onchange="renderDashboardMantenimiento()">
-              <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-              <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-              <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-              <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-            </select>
-            <select class="filter" id="mantEstado" onchange="filterByStatus('tblMantPend',this.value,'estado')">
-              <option value="">Todos</option><option value="Pendiente">Pendiente</option><option value="Pagado">Pagado</option>
-            </select>
-          </div>
-          <div class="tbl-wrap">
-            <table id="tblMantPend">
-              <thead><tr><th>Unidad</th><th>Propietario</th><th>Cuota</th><th>Cobrado del mes</th><th>Estado</th></tr></thead>
-              <tbody id="tbodyMantPend"></tbody>
-            </table>
-          </div>
+        <div class="card">
+          <div class="card-title">Control</div>
+          <p style="color:var(--muted);font-size:13px">El cobro de mantenimiento pendiente se movió al módulo Apartamentos. Aquí se agregarán próximamente otros indicadores de control.</p>
         </div>
       </div>
     </div>
 <!-- ── APARTAMENTOS ── -->
 <div id="page-apartamentos" class="page">
+  <div id="aptVentasView" class="module-view">
   <div class="bar">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar apartamento..." oninput="applyTableFilters('tblApts')"/></div>
     <select class="filter f-status" id="filtAptEstado" onchange="applyTableFilters('tblApts')">
@@ -426,6 +409,58 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       </tr></thead>
       <tbody id="tbodyApts"></tbody>
     </table>
+  </div>
+  </div>
+
+  <!-- Vista de Apartamentos para proyectos de mantenimiento: propietario/inquilino en vez de datos de construcción -->
+  <div id="aptMantView" class="module-view" style="display:none">
+    <div class="stat-grid" id="mantStats"></div>
+    <div class="bar" style="margin-top:1rem">
+      <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar apartamento o propietario..." oninput="applyTableFilters('tblAptsMant')"/></div>
+      <select class="filter f-status" onchange="applyTableFilters('tblAptsMant')">
+        <option value="">Todos los estados</option>
+        <option>Habitado</option><option>Alquilado</option><option>Deshabitado</option>
+      </select>
+      <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblAptsMant')" title="Desde"/><span class="filter-date-sep">–</span>
+      <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblAptsMant')" title="Hasta"/>
+      <select class="filter f-periodo" onchange="setPeriodo('tblAptsMant',this.value)">
+        <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+        <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+      </select>
+      <button class="btn btn-primary" onclick="newApartamentoMant()"><i class="ti ti-plus"></i> Nuevo</button>
+      <button class="btn btn-outline" onclick="printModule('Apartamentos','tblAptsMant')"><i class="ti ti-printer"></i> Imprimir</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblAptsMant">
+        <thead><tr>
+          <th>No.</th><th>Propietario</th><th>Contacto</th><th>Estado</th><th>Inquilino</th>
+          <th>Mantenimiento</th><th>Gas</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="tbodyAptsMant"></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title">Cobro de mantenimiento pendiente</div>
+      <div class="bar">
+        <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar unidad o propietario..." oninput="filterTable('tblMantPend',this.value)"/></div>
+        <select class="filter" id="mantMes" onchange="renderCobroMantPendiente()">
+          <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+          <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+          <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+          <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+        </select>
+        <select class="filter" id="mantEstado" onchange="filterByStatus('tblMantPend',this.value,'estado')">
+          <option value="">Todos</option><option value="Pendiente">Pendiente</option><option value="Pagado">Pagado</option>
+        </select>
+      </div>
+      <div class="tbl-wrap">
+        <table id="tblMantPend">
+          <thead><tr><th>Unidad</th><th>Propietario</th><th>Cuota</th><th>Cobrado del mes</th><th>Estado</th></tr></thead>
+          <tbody id="tbodyMantPend"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1320,6 +1355,58 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal('modalApartamento')">Cancelar</button>
     <button class="btn btn-primary" onclick="saveApartamento()"><i class="ti ti-check"></i> Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- Apartamento (mantenimiento): propietario + inquilino, distinto del formulario de construcción -->
+<div class="modal-bg" id="modalApartamentoMant">
+<div class="modal" style="max-width:660px">
+  <div class="modal-head"><h2 id="mAptMantTit">Nuevo Apartamento</h2><button class="modal-close" onclick="closeModal('modalApartamentoMant')">×</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="fg"><label>No. Apartamento</label><input id="am_no" placeholder="Ej: A-1"/></div>
+      <div class="fg"><label>Fecha de registro</label><input id="am_fecha_reg" type="date"/></div>
+      <div class="fg"><label>Estado</label>
+        <select id="am_estado" onchange="toggleInquilinoSection()"><option>Habitado</option><option>Alquilado</option><option>Deshabitado</option></select>
+      </div>
+      <div class="fg"><label>Moneda</label><select id="am_moneda"><option value="RD$">RD$</option><option value="US$">US$</option></select></div>
+    </div>
+    <div class="form-section">Propietario</div>
+    <div class="form-grid">
+      <div class="fg"><label>Nombre</label><input id="am_prop_nombre"/></div>
+      <div class="fg"><label>Tipo Documento</label><select id="am_prop_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
+      <div class="fg"><label>No. Documento</label><input id="am_prop_doc"/></div>
+      <div class="fg"><label>Teléfono</label><input id="am_prop_tel" oninput="formatTel(this)"/></div>
+      <div class="fg"><label>WhatsApp</label><input id="am_prop_whatsapp" oninput="formatTel(this)"/></div>
+      <div class="fg"><label>Correo</label><input id="am_prop_email" type="email"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="am_prop_dir"/></div>
+    </div>
+    <div class="form-section" id="am_inq_title">Inquilino</div>
+    <div class="form-grid" id="am_inq_section">
+      <div class="fg"><label>Nombre</label><input id="am_inq_nombre"/></div>
+      <div class="fg"><label>Tipo Documento</label><select id="am_inq_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
+      <div class="fg"><label>No. Documento</label><input id="am_inq_doc"/></div>
+      <div class="fg"><label>Teléfono</label><input id="am_inq_tel" oninput="formatTel(this)"/></div>
+      <div class="fg"><label>WhatsApp</label><input id="am_inq_whatsapp" oninput="formatTel(this)"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="am_inq_dir"/></div>
+    </div>
+    <div class="form-section">Montos</div>
+    <div class="form-grid">
+      <div class="fg"><label>Mantenimiento</label><input id="am_monto_mant" placeholder="0.00" oninput="moneyInput(this)"/></div>
+      <div class="fg"><label>Gas</label><input id="am_monto_gas" placeholder="0.00" oninput="moneyInput(this)"/></div>
+    </div>
+    <div style="margin-top:10px">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;display:block;margin-bottom:6px">Otros montos</label>
+      <div id="am_otros_montos"></div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="agregarOtroMonto()"><i class="ti ti-plus"></i> Agregar monto</button>
+    </div>
+    <div class="form-grid full" style="margin-top:10px"><div class="fg"><label>Observaciones</label><textarea id="am_obs" rows="2"></textarea></div></div>
+    <input type="hidden" id="am_idx" value=""/>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modalApartamentoMant')">Cancelar</button>
+    <button class="btn btn-primary" onclick="saveApartamentoMant()"><i class="ti ti-check"></i> Guardar</button>
   </div>
 </div>
 </div>
@@ -2435,7 +2522,7 @@ function renderDashboard(){
   const esMant=currentProject && currentProject.modo==='mantenimiento';
   document.getElementById('dashConstruccion').style.display=esMant?'none':'';
   document.getElementById('dashMantenimiento').style.display=esMant?'':'none';
-  if(esMant){ renderDashboardMantenimiento(); return; }
+  if(esMant){ return; }
   const entregados=STATE.financiamientos.filter(f=>f.situacion==='ENTREGADO');
   const totalCxC=entregados.reduce((s,f)=>s+f.monto,0);
   const totalGastos=STATE.gastos.reduce((s,g)=>s+g.monto+g.itbis,0);
@@ -2479,41 +2566,6 @@ function renderDashboard(){
   // Activity
   document.getElementById('actList').innerHTML=STATE.log.slice(0,8).map(l=>`
     <div class="act-item"><div class="act-icon"><i class="ti ti-activity"></i></div><div class="act-text"><strong>${l.user}</strong> — ${l.act}</div><div class="act-time">${l.fecha} ${l.hora}</div></div>`).join('');
-}
-
-function renderDashboardMantenimiento(){
-  const mesSel=document.getElementById('mantMes');
-  if(mesSel && mesSel.dataset.init!=='1'){ mesSel.value=MESES_ES[new Date().getMonth()]; mesSel.dataset.init='1'; }
-  const mes=mesSel?mesSel.value:MESES_ES[0];
-  const aptos=PD().apartamentos||[];
-  const cxc=PD().cxc||[];
-  const aptosByNo={}; aptos.forEach(a=>{aptosByNo[a.no]=a;});
-  const filas=cxc.filter(c=>{
-    const a=aptosByNo[c.op];
-    return !a || a.estado!=='Deshabitado';
-  }).map(c=>{
-    const pm=(c.pagos_mensuales||[]).find(p=>p.mes===mes);
-    const monto=pm?(pm.monto||0):0;
-    return {op:c.op, cliente:c.cliente, cuota:c.cuota||0, monto, estado: monto>0?'Pagado':'Pendiente'};
-  });
-  const totalCobrado=filas.reduce((s,r)=>s+r.monto,0);
-  const pendientes=filas.filter(r=>r.estado==='Pendiente');
-  const totalPendiente=pendientes.reduce((s,r)=>s+r.cuota,0);
-  const unidadesActivas=aptos.filter(a=>a.estado!=='Deshabitado').length;
-  document.getElementById('mantStats').innerHTML=`
-    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${filas.length-pendientes.length} de ${filas.length} unidades</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Pendiente en ${mes}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} unidades sin pagar</div></div>
-    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-building"></i></div><div class="stat-label">Unidades habitadas</div><div class="stat-val">${unidadesActivas}</div><div class="stat-sub">de ${aptos.length} en total</div></div>
-  `;
-  document.getElementById('tbodyMantPend').innerHTML=filas.length?filas.map(r=>`
-    <tr>
-      <td><strong>${r.op}</strong></td>
-      <td>${r.cliente||'—'}</td>
-      <td>RD$ ${fmt(r.cuota)}</td>
-      <td>RD$ ${fmt(r.monto)}</td>
-      <td><span class="badge ${r.estado==='Pagado'?'b-green':'b-yellow'}">${r.estado}</span></td>
-    </tr>`).join('')
-    : '<tr><td colspan="5" class="empty"><i class="ti ti-building"></i><p>Sin unidades registradas</p></td></tr>';
 }
 
 function viewCliente(i){
@@ -3171,7 +3223,7 @@ function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart
 function applyTableFilters(tableId){
   const table=document.getElementById(tableId);
   if(!table)return;
-  const bar=table.closest('.page')?.querySelector('.bar');
+  const bar=table.closest('.module-view, .page')?.querySelector('.bar');
   if(!bar)return;
   const q=(bar.querySelector('.f-search')?.value||'').trim().toLowerCase();
   const statusVal=(bar.querySelector('.f-status')?.value||'').toLowerCase();
@@ -3196,7 +3248,7 @@ function applyTableFilters(tableId){
 // Aplica un período rápido (hoy/semana/mes/año/todos) a los campos Desde/Hasta de una tabla.
 function setPeriodo(tableId,val){
   const table=document.getElementById(tableId);
-  const bar=table?.closest('.page')?.querySelector('.bar');
+  const bar=table?.closest('.module-view, .page')?.querySelector('.bar');
   if(!bar)return;
   const desdeEl=bar.querySelector('.f-desde');
   const hastaEl=bar.querySelector('.f-hasta');
@@ -3213,7 +3265,7 @@ function setPeriodo(tableId,val){
 // Al editar manualmente Desde/Hasta, el selector de período pasa a "Personalizado".
 function marcarPeriodoPersonalizado(tableId){
   const table=document.getElementById(tableId);
-  const bar=table?.closest('.page')?.querySelector('.bar');
+  const bar=table?.closest('.module-view, .page')?.querySelector('.bar');
   const sel=bar?.querySelector('.f-periodo');
   if(sel) sel.value='custom';
   applyTableFilters(tableId);
@@ -5083,7 +5135,20 @@ function pagoClienteBtn(i){
 }
 
 // ═══ RENDER APARTAMENTOS UPDATED ═══
+// Apartamentos cambia de vista según el modo del proyecto: construcción/ventas
+// conserva torre/m²/precio (lo usan Contratos y Ventas); mantenimiento muestra
+// propietario/inquilino/montos, que es un modelo de datos distinto.
 function renderApartamentos(){
+  const esMant = currentProject && currentProject.modo==='mantenimiento';
+  const ventasView=document.getElementById('aptVentasView');
+  const mantView=document.getElementById('aptMantView');
+  if(ventasView) ventasView.style.display = esMant?'none':'';
+  if(mantView) mantView.style.display = esMant?'':'none';
+  if(esMant){ renderApartamentosMant(); return; }
+  renderApartamentosVentas();
+}
+
+function renderApartamentosVentas(){
   const tbody = document.getElementById('tbodyApts');
   if(!tbody) return;
   const apts = PD().apartamentos||[];
@@ -5104,6 +5169,183 @@ function renderApartamentos(){
     </td>
   </tr>`).join('')
   : '<tr><td colspan="8" class="empty"><i class="ti ti-building"></i><p>Sin apartamentos registrados</p></td></tr>';
+}
+
+function renderApartamentosMant(){
+  const tbody = document.getElementById('tbodyAptsMant');
+  if(!tbody) return;
+  const apts = PD().apartamentos||[];
+  const canEdit = puedeHacer('editar');
+  const canDel = puedeHacer('eliminar');
+  const st={Habitado:'b-green',Alquilado:'b-blue',Deshabitado:'b-gray'};
+  tbody.innerHTML = apts.length ? apts.map((a,i)=>{
+    const sym = a.moneda==='US$'?'US$':'RD$';
+    return `<tr data-fecha="${toISODate(a.fecha_reg)}">
+    <td><strong>${a.no||'—'}</strong></td>
+    <td>${a.prop_nombre||'—'}<br><small style="color:var(--muted)">${a.prop_doc||''}</small></td>
+    <td><small>${a.prop_tel||'—'}${a.prop_whatsapp?'<br>WA '+a.prop_whatsapp:''}</small></td>
+    <td><span class="badge ${st[a.estado]||'b-gray'}">${a.estado||'Habitado'}</span></td>
+    <td>${a.estado==='Alquilado'?(a.inq_nombre||'—'):'—'}</td>
+    <td>${sym} ${fmt(a.monto_mant||0)}</td>
+    <td>${sym} ${fmt(a.monto_gas||0)}</td>
+    <td style="white-space:nowrap">
+      ${canEdit?`<button class="btn-icon" onclick="editApartamentoMant(${i})"><i class="ti ti-edit"></i></button>`:''}
+      ${canDel?`<button class="btn-icon" onclick="deleteApartamento(${i})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
+    </td>
+  </tr>`;}).join('')
+  : '<tr><td colspan="8" class="empty"><i class="ti ti-building"></i><p>Sin apartamentos registrados</p></td></tr>';
+  renderCobroMantPendiente();
+}
+
+// Widget "Cobro de mantenimiento pendiente" — antes vivía en el Dashboard, ahora
+// vive aquí junto a los apartamentos. Usa el propietario del apartamento (nuevo
+// modelo) y cae a c.cliente si el apartamento no tiene propietario cargado aún.
+function renderCobroMantPendiente(){
+  const tbodyPend=document.getElementById('tbodyMantPend');
+  if(!tbodyPend) return;
+  const mesSel=document.getElementById('mantMes');
+  if(mesSel && mesSel.dataset.init!=='1'){ mesSel.value=MESES_ES[new Date().getMonth()]; mesSel.dataset.init='1'; }
+  const mes=mesSel?mesSel.value:MESES_ES[0];
+  const aptos=PD().apartamentos||[];
+  const cxc=PD().cxc||[];
+  const aptosByNo={}; aptos.forEach(a=>{aptosByNo[a.no]=a;});
+  const filas=cxc.filter(c=>{
+    const a=aptosByNo[c.op];
+    return !a || a.estado!=='Deshabitado';
+  }).map(c=>{
+    const a=aptosByNo[c.op]||{};
+    const pm=(c.pagos_mensuales||[]).find(p=>p.mes===mes);
+    const monto=pm?(pm.monto||0):0;
+    return {op:c.op, propietario:a.prop_nombre||c.cliente||'—', cuota:c.cuota||a.monto_mant||0, monto, estado: monto>0?'Pagado':'Pendiente'};
+  });
+  const totalCobrado=filas.reduce((s,r)=>s+r.monto,0);
+  const pendientes=filas.filter(r=>r.estado==='Pendiente');
+  const totalPendiente=pendientes.reduce((s,r)=>s+r.cuota,0);
+  const unidadesActivas=aptos.filter(a=>a.estado!=='Deshabitado').length;
+  const statsEl=document.getElementById('mantStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${filas.length-pendientes.length} de ${filas.length} unidades</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Pendiente en ${mes}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} unidades sin pagar</div></div>
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-building"></i></div><div class="stat-label">Unidades habitadas</div><div class="stat-val">${unidadesActivas}</div><div class="stat-sub">de ${aptos.length} en total</div></div>
+  `;
+  tbodyPend.innerHTML=filas.length?filas.map(r=>`
+    <tr>
+      <td><strong>${r.op}</strong></td>
+      <td>${r.propietario}</td>
+      <td>RD$ ${fmt(r.cuota)}</td>
+      <td>RD$ ${fmt(r.monto)}</td>
+      <td><span class="badge ${r.estado==='Pagado'?'b-green':'b-yellow'}">${r.estado}</span></td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" class="empty"><i class="ti ti-building"></i><p>Sin unidades registradas</p></td></tr>';
+}
+
+// Alterna la sección de Inquilino en el modal de apartamento de mantenimiento
+// según el Estado seleccionado (solo aplica si está Alquilado).
+function toggleInquilinoSection(){
+  const esAlquilado = document.getElementById('am_estado').value==='Alquilado';
+  document.getElementById('am_inq_title').style.display = esAlquilado?'':'none';
+  document.getElementById('am_inq_section').style.display = esAlquilado?'':'none';
+}
+
+// Agrega una fila editable de "otro monto" (concepto + valor) al modal de apartamento.
+function agregarOtroMonto(concepto,monto){
+  const wrap=document.getElementById('am_otros_montos');
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
+  row.innerHTML=`
+    <input placeholder="Concepto" class="am_otro_concepto" value="${concepto||''}" style="flex:2;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+    <input placeholder="0.00" class="am_otro_monto" value="${monto||''}" oninput="moneyInput(this)" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+    <button type="button" class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--danger)"><i class="ti ti-trash"></i></button>
+  `;
+  wrap.appendChild(row);
+}
+
+function newApartamentoMant(){
+  document.getElementById('mAptMantTit').textContent='Nuevo Apartamento';
+  ['am_no','am_prop_nombre','am_prop_doc','am_prop_tel','am_prop_whatsapp','am_prop_email','am_prop_dir',
+   'am_inq_nombre','am_inq_doc','am_inq_tel','am_inq_whatsapp','am_inq_dir','am_obs'].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.value='';
+  });
+  document.getElementById('am_monto_mant').value='';
+  document.getElementById('am_monto_gas').value='';
+  document.getElementById('am_estado').value='Habitado';
+  document.getElementById('am_moneda').value='RD$';
+  document.getElementById('am_prop_tipdoc').value='CEDULA';
+  document.getElementById('am_inq_tipdoc').value='CEDULA';
+  document.getElementById('am_fecha_reg').value=todayISO();
+  document.getElementById('am_otros_montos').innerHTML='';
+  document.getElementById('am_idx').value='';
+  toggleInquilinoSection();
+  openModal('modalApartamentoMant');
+}
+
+function editApartamentoMant(i){
+  const a=(PD().apartamentos||[])[i];
+  if(!a)return;
+  document.getElementById('mAptMantTit').textContent='Editar Apartamento';
+  document.getElementById('am_no').value=a.no||'';
+  document.getElementById('am_fecha_reg').value=a.fecha_reg||'';
+  document.getElementById('am_estado').value=a.estado||'Habitado';
+  document.getElementById('am_moneda').value=a.moneda||'RD$';
+  document.getElementById('am_prop_nombre').value=a.prop_nombre||'';
+  document.getElementById('am_prop_tipdoc').value=a.prop_tipdoc||'CEDULA';
+  document.getElementById('am_prop_doc').value=a.prop_doc||'';
+  document.getElementById('am_prop_tel').value=a.prop_tel||'';
+  document.getElementById('am_prop_whatsapp').value=a.prop_whatsapp||'';
+  document.getElementById('am_prop_email').value=a.prop_email||'';
+  document.getElementById('am_prop_dir').value=a.prop_dir||'';
+  document.getElementById('am_inq_nombre').value=a.inq_nombre||'';
+  document.getElementById('am_inq_tipdoc').value=a.inq_tipdoc||'CEDULA';
+  document.getElementById('am_inq_doc').value=a.inq_doc||'';
+  document.getElementById('am_inq_tel').value=a.inq_tel||'';
+  document.getElementById('am_inq_whatsapp').value=a.inq_whatsapp||'';
+  document.getElementById('am_inq_dir').value=a.inq_dir||'';
+  setMoneyVal('am_monto_mant',a.monto_mant||0);
+  setMoneyVal('am_monto_gas',a.monto_gas||0);
+  document.getElementById('am_obs').value=a.obs||'';
+  document.getElementById('am_otros_montos').innerHTML='';
+  (a.otros_montos||[]).forEach(o=>agregarOtroMonto(o.concepto,o.monto));
+  document.getElementById('am_idx').value=i;
+  toggleInquilinoSection();
+  openModal('modalApartamentoMant');
+}
+
+function saveApartamentoMant(){
+  const no=document.getElementById('am_no').value.trim();
+  if(!no){alert('El número de apartamento es obligatorio.');return;}
+  const idx=document.getElementById('am_idx').value;
+  const otros=[...document.querySelectorAll('#am_otros_montos > div')].map(row=>({
+    concepto: row.querySelector('.am_otro_concepto').value,
+    monto: parseFloat(row.querySelector('.am_otro_monto').value.replace(/[^0-9.]/g,''))||0
+  })).filter(o=>o.concepto||o.monto);
+  const a={
+    no, estado:document.getElementById('am_estado').value,
+    moneda:document.getElementById('am_moneda').value,
+    fecha_reg:document.getElementById('am_fecha_reg').value||todayISO(),
+    prop_nombre:document.getElementById('am_prop_nombre').value,
+    prop_tipdoc:document.getElementById('am_prop_tipdoc').value,
+    prop_doc:document.getElementById('am_prop_doc').value,
+    prop_tel:document.getElementById('am_prop_tel').value,
+    prop_whatsapp:document.getElementById('am_prop_whatsapp').value,
+    prop_email:document.getElementById('am_prop_email').value,
+    prop_dir:document.getElementById('am_prop_dir').value,
+    inq_nombre:document.getElementById('am_inq_nombre').value,
+    inq_tipdoc:document.getElementById('am_inq_tipdoc').value,
+    inq_doc:document.getElementById('am_inq_doc').value,
+    inq_tel:document.getElementById('am_inq_tel').value,
+    inq_whatsapp:document.getElementById('am_inq_whatsapp').value,
+    inq_dir:document.getElementById('am_inq_dir').value,
+    monto_mant:getMoneyVal('am_monto_mant'),
+    monto_gas:getMoneyVal('am_monto_gas'),
+    otros_montos:otros,
+    obs:document.getElementById('am_obs').value
+  };
+  if(!PD().apartamentos) currentProject.data.apartamentos=[];
+  if(idx!=='') PD().apartamentos[parseInt(idx)]=a;
+  else PD().apartamentos.push(a);
+  closeModal('modalApartamentoMant');
+  renderApartamentos();
+  addLog((idx!==''?'Editó':'Agregó')+' apartamento '+a.no);
 }
 
 // Patch verPlanPagosVenta to accept venta object directly
