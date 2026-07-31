@@ -1225,6 +1225,62 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 </div>
 </div>
 
+<!-- Registrar pago de mantenimiento/gas (proyectos de mantenimiento) -->
+<div class="modal-bg" id="modalPagoMant">
+<div class="modal" style="max-width:520px">
+  <div class="modal-head"><h2>Registrar Pago</h2><button class="modal-close" onclick="closeModal('modalPagoMant')">×</button></div>
+  <div class="modal-body">
+    <div style="background:var(--green-light);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
+      <strong id="pm_cliente_nombre">Cliente</strong><br>
+      <span style="color:var(--muted)">Apto <strong id="pm_apto">—</strong> · <span id="pm_concepto_lbl">—</span> · Monto: <strong id="pm_monto_esperado" style="color:var(--green-dark)">$0.00</strong></span>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Mes que paga</label>
+        <select id="pm_mes"><option>Enero</option><option>Febrero</option><option>Marzo</option><option>Abril</option><option>Mayo</option><option>Junio</option><option>Julio</option><option>Agosto</option><option>Septiembre</option><option>Octubre</option><option>Noviembre</option><option>Diciembre</option></select>
+      </div>
+      <div class="fg"><label>Año</label><select id="pm_anio"></select></div>
+      <div class="fg"><label>Fecha de Pago</label><input id="pm_fecha" type="date"/></div>
+      <div class="fg"><label>Monto Recibido</label><input id="pm_monto" placeholder="0.00" oninput="moneyInput(this)"/></div>
+      <div class="fg"><label>Moneda</label><select id="pm_moneda"><option value="RD$">RD$</option><option value="US$">US$</option></select></div>
+      <div class="fg"><label>Método de Pago</label>
+        <select id="pm_metodo"><option>Transferencia</option><option>Depósito</option><option>Efectivo</option></select>
+      </div>
+      <div class="fg" style="grid-column:1/-1"><label>Cuenta Bancaria Destino</label>
+        <select id="pm_banco" style="padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:#fff;color:var(--navy);outline:none;width:100%">
+          <option value="">-- Seleccionar cuenta --</option>
+        </select>
+      </div>
+      <div class="fg"><label>Aplicar mora</label>
+        <select id="pm_mora_si" onchange="document.getElementById('pm_monto_mora').disabled=this.value==='0';if(this.value==='0')document.getElementById('pm_monto_mora').value='0.00';"><option value="0">No</option><option value="1">Sí</option></select>
+      </div>
+      <div class="fg"><label>Monto mora (si aplica)</label><input id="pm_monto_mora" placeholder="0.00" oninput="moneyInput(this)" value="0.00" disabled/></div>
+      <div class="fg" style="grid-column:1/-1"><label>No. Referencia / Confirmación</label><input id="pm_referencia" placeholder="Ej: TRF-20260101-001"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="pm_obs" rows="2"></textarea></div>
+    </div>
+    <input type="hidden" id="pm_apt_no"/><input type="hidden" id="pm_concepto"/><input type="hidden" id="pm_cxc_idx"/>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modalPagoMant')">Cancelar</button>
+    <button class="btn btn-success" onclick="generarReciboMant()"><i class="ti ti-printer"></i> Generar Recibo</button>
+    <button class="btn btn-primary" onclick="savePagoMant()"><i class="ti ti-check"></i> Registrar Pago</button>
+  </div>
+</div>
+</div>
+
+<!-- Historial de pagos de una cuota de mantenimiento/gas: reversar o eliminar -->
+<div class="modal-bg" id="modalHistPagosMant">
+<div class="modal" style="max-width:560px">
+  <div class="modal-head"><h2 id="hp_titulo">Historial de pagos</h2><button class="modal-close" onclick="closeModal('modalHistPagosMant')">×</button></div>
+  <div class="modal-body">
+    <div class="tbl-wrap"><table style="font-size:13px">
+      <thead><tr><th>Mes</th><th>Fecha</th><th>Monto</th><th>Mora</th><th>Referencia</th><th>Acciones</th></tr></thead>
+      <tbody id="hp_tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalHistPagosMant')">Cerrar</button></div>
+</div>
+</div>
+
 <!-- ═══ MODAL RECIBO ═══ -->
 <div class="modal-bg" id="modalRecibo">
 <div class="modal" style="max-width:700px">
@@ -3467,6 +3523,25 @@ function savePago(){
   addLog('Pago registrado — '+(c.cliente||'')+' cuota #'+pago.ncuota+' US$ '+fmt(total));
 }
 
+// Imprime el contenido ya cargado en #reciboContent (hoja duplicada 8.5x11) en una
+// ventana aparte. Antes este botón llamaba a una función que no existía en el código.
+function printRecibo(){
+  const content=document.getElementById('reciboContent');
+  if(!content)return;
+  const win=window.open('','_blank','width=850,height=1100');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Recibo de Pago</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;margin:0;color:#1b2a3b;}
+      .recibo-copia{page-break-inside:avoid;}
+      @media print{@page{margin:1cm;size:letter portrait;}}
+    </style>
+  </head><body>${content.innerHTML}
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 function generarRecibo(){
   if(currentPagoRef===null)return;
   const c=(PD().cxc||[])[currentPagoRef];
@@ -5620,7 +5695,20 @@ function buildCxcRows(){
   return [...ventaRows, ...manualRows];
 }
 
+// CxC/Cobros cambia de vista según el modo del proyecto, igual que Apartamentos:
+// construcción/ventas conserva el modelo de financiamiento por cuotas; mantenimiento
+// usa cobro mensual recurrente por apto/concepto (ver renderCxcMant).
 function renderCxc(){
+  const esMant = currentProject && currentProject.modo==='mantenimiento';
+  const ventasView=document.getElementById('cxcVentasView');
+  const mantView=document.getElementById('cxcMantView');
+  if(ventasView) ventasView.style.display = esMant?'none':'';
+  if(mantView) mantView.style.display = esMant?'':'none';
+  if(esMant){ renderCxcMant(); if(typeof renderVencidas==='function') renderVencidas(); return; }
+  renderCxcVentas();
+}
+
+function renderCxcVentas(){
   const tbody = document.getElementById('tbodyCxc');
   if(!tbody) return;
   const all = buildCxcRows();
@@ -5705,6 +5793,273 @@ function renderCxc(){
     </tr>`;
   }).join('');
   if(typeof renderVencidas==='function') renderVencidas();
+}
+
+// ═══ CxC / Cobros — MANTENIMIENTO ═══
+// Determina el estado de un cargo mensual: Pagada si ya tiene pago registrado;
+// si no, Vencida cuando ya pasó la fecha de vencimiento + días de gracia del
+// proyecto, Pendiente si ya inició el mes de cobro, o Por vencer si es un mes futuro.
+function estadoCargoMant(mes,anio,pagado,diasGracia){
+  if(pagado) return 'Pagada';
+  const hoy=new Date();
+  const mesIdx=MESES_ES.indexOf(mes);
+  const inicioMes=new Date(anio,mesIdx,1);
+  const vencimiento=new Date(anio,mesIdx,1+diasGracia);
+  if(hoy>vencimiento) return 'Vencida';
+  if(hoy>=inicioMes) return 'Pendiente';
+  return 'Por vencer';
+}
+
+// Arma un cargo mensual para un apartamento+concepto, cruzando con el historial de
+// pagos en PD().cxc (una entrada por apto+concepto, con pagos_mensuales por mes/año).
+function construirCargoMant(a,concepto,monto,cliente,clienteTel,clienteWA,clienteDoc,mes,anio,diasGracia){
+  const cxcIdx=(PD().cxc||[]).findIndex(c=>c.op===a.no&&(c.concepto===concepto||(!c.concepto&&concepto==='Mantenimiento')));
+  const c=cxcIdx>=0?PD().cxc[cxcIdx]:null;
+  const pago=(c?.pagos_mensuales||[]).find(p=>p.mes===mes&&(p.anio||new Date().getFullYear())===anio);
+  return {
+    apt_no:a.no, concepto, cliente:cliente||'—', clienteTel:clienteTel||'', clienteWA:clienteWA||'', clienteDoc:clienteDoc||'',
+    monto, mes, anio, pagado:!!pago, cxc_idx:cxcIdx,
+    estado: estadoCargoMant(mes,anio,!!pago,diasGracia)
+  };
+}
+
+// Genera los cargos del mes/año seleccionados a partir de lo configurado en cada
+// apartamento (mantenimiento, gas y otros montos) — solo se cobra lo que ahí se
+// especificó, apartamentos deshabitados no generan cargo.
+function cargosMantenimiento(mes,anio){
+  const aptos=(PD().apartamentos||[]).filter(a=>a.estado!=='Deshabitado');
+  const diasGracia=parseInt(currentProject?.config?.dias_gracia)||5;
+  const rows=[];
+  aptos.forEach(a=>{
+    if(parseFloat(a.monto_mant)>0){
+      rows.push(construirCargoMant(a,'Mantenimiento',parseFloat(a.monto_mant),a.prop_nombre,a.prop_tel,a.prop_whatsapp,a.prop_doc,mes,anio,diasGracia));
+    }
+    if(parseFloat(a.monto_gas)>0){
+      const alInquilino=a.estado==='Alquilado';
+      rows.push(construirCargoMant(a,'Gas',parseFloat(a.monto_gas),alInquilino?a.inq_nombre:a.prop_nombre,alInquilino?a.inq_tel:a.prop_tel,alInquilino?a.inq_whatsapp:a.prop_whatsapp,alInquilino?a.inq_doc:a.prop_doc,mes,anio,diasGracia));
+    }
+    (a.otros_montos||[]).forEach(o=>{
+      if(parseFloat(o.monto)>0) rows.push(construirCargoMant(a,o.concepto||'Otro',parseFloat(o.monto),a.prop_nombre,a.prop_tel,a.prop_whatsapp,a.prop_doc,mes,anio,diasGracia));
+    });
+  });
+  return rows;
+}
+
+function renderCxcMant(){
+  const tbody=document.getElementById('tbodyCxcMant');
+  if(!tbody) return;
+  const mesSel=document.getElementById('cxcMantMes');
+  const anioSel=document.getElementById('cxcMantAnio');
+  if(mesSel && mesSel.dataset.init!=='1'){ mesSel.value=MESES_ES[new Date().getMonth()]; mesSel.dataset.init='1'; }
+  if(anioSel && anioSel.dataset.init!=='1'){
+    const y=new Date().getFullYear();
+    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+    anioSel.value=y;
+    anioSel.dataset.init='1';
+  }
+  const mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
+  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  const rows=cargosMantenimiento(mes,anio);
+
+  const pagadas=rows.filter(r=>r.estado==='Pagada');
+  const vencidas=rows.filter(r=>r.estado==='Vencida');
+  const pendientes=rows.filter(r=>r.estado!=='Pagada');
+  const totalCobrado=pagadas.reduce((s,r)=>s+r.monto,0);
+  const totalPendiente=pendientes.reduce((s,r)=>s+r.monto,0);
+
+  const statsEl=document.getElementById('cxcMantStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
+    <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">Requieren atención</div></div>
+  `;
+
+  const alertaEl=document.getElementById('cxcMantAlerta');
+  if(alertaEl){
+    if(vencidas.length){
+      alertaEl.style.display='block';
+      alertaEl.innerHTML=`<div class="card" style="margin-bottom:1rem;background:var(--danger-l);border:1px solid #f3c9c9;">
+        <div style="display:flex;align-items:center;gap:10px;color:var(--danger);font-weight:600;font-size:13px;">
+          <i class="ti ti-alert-triangle" style="font-size:18px"></i> ${vencidas.length} cuota${vencidas.length!==1?'s':''} vencida${vencidas.length!==1?'s':''} — revíselas en Cuotas Vencidas
+        </div>
+      </div>`;
+    } else { alertaEl.style.display='none'; alertaEl.innerHTML=''; }
+  }
+
+  const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
+  tbody.innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td><strong>${r.apt_no}</strong></td>
+    <td>${r.cliente}</td>
+    <td>${r.concepto}</td>
+    <td>RD$ ${fmt(r.monto)}</td>
+    <td><span class="badge ${st[r.estado]||'b-gray'}">${r.estado}</span></td>
+    <td style="white-space:nowrap">
+      ${r.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
+      ${r.cxc_idx>=0?`<button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-history"></i></button>`:''}
+      ${(r.estado==='Vencida'||r.estado==='Pendiente')&&r.clienteWA?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:''}
+    </td>
+  </tr>`).join('') : '<tr><td colspan="6" class="empty"><i class="ti ti-credit-card"></i><p>Sin cargos configurados. Agregue montos de Mantenimiento/Gas en Apartamentos.</p></td></tr>';
+}
+
+// Abre el modal de pago para un apto+concepto+mes/año actualmente seleccionados en el filtro.
+function abrirPagoMant(apt_no,concepto){
+  const mesSel=document.getElementById('cxcMantMes');
+  const anioSel=document.getElementById('cxcMantAnio');
+  const mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
+  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  const row=cargosMantenimiento(mes,anio).find(r=>r.apt_no===apt_no&&r.concepto===concepto);
+  if(!row){alert('No se encontró el cargo.');return;}
+  document.getElementById('pm_apt_no').value=apt_no;
+  document.getElementById('pm_concepto').value=concepto;
+  document.getElementById('pm_cxc_idx').value=row.cxc_idx;
+  document.getElementById('pm_cliente_nombre').textContent=row.cliente;
+  document.getElementById('pm_apto').textContent=apt_no;
+  document.getElementById('pm_concepto_lbl').textContent=concepto;
+  document.getElementById('pm_monto_esperado').textContent='RD$ '+fmt(row.monto);
+  const mesPagoSel=document.getElementById('pm_mes'); mesPagoSel.value=mes;
+  const anioPagoSel=document.getElementById('pm_anio');
+  anioPagoSel.innerHTML=[anio-1,anio,anio+1].map(y=>`<option value="${y}">${y}</option>`).join('');
+  anioPagoSel.value=anio;
+  document.getElementById('pm_fecha').value=todayISO();
+  setMoneyVal('pm_monto',row.monto);
+  const apt=(PD().apartamentos||[]).find(a=>a.no===apt_no);
+  document.getElementById('pm_moneda').value=apt?.moneda||'RD$';
+  document.getElementById('pm_mora_si').value='0';
+  document.getElementById('pm_monto_mora').value='0.00';
+  document.getElementById('pm_monto_mora').disabled=true;
+  document.getElementById('pm_referencia').value='';
+  document.getElementById('pm_obs').value='';
+  const bsel=document.getElementById('pm_banco');
+  const bancos=(PD().bancos||[]);
+  bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
+  if(bancos.length===1) bsel.value=bancos[0].id;
+  openModal('modalPagoMant');
+}
+
+function savePagoMant(){
+  const apt_no=document.getElementById('pm_apt_no').value;
+  const concepto=document.getElementById('pm_concepto').value;
+  let cxcIdx=parseInt(document.getElementById('pm_cxc_idx').value);
+  const bancoId=document.getElementById('pm_banco').value;
+  const monto=getMoneyVal('pm_monto');
+  const mora=document.getElementById('pm_mora_si').value==='1'?getMoneyVal('pm_monto_mora'):0;
+  const total=monto+mora;
+  if(!bancoId){alert('Seleccione una cuenta bancaria destino.');return;}
+  if(!monto){alert('Ingrese el monto del pago.');return;}
+  if(isNaN(cxcIdx)||cxcIdx<0){
+    if(!PD().cxc) currentProject.data.cxc=[];
+    const a=(PD().apartamentos||[]).find(x=>x.no===apt_no)||{};
+    const alInquilino=concepto==='Gas'&&a.estado==='Alquilado';
+    PD().cxc.push({
+      op:apt_no, concepto, cliente: alInquilino?a.inq_nombre:a.prop_nombre,
+      cliente_doc: alInquilino?a.inq_doc:a.prop_doc, origen:'mantenimiento', pagos_mensuales:[]
+    });
+    cxcIdx=PD().cxc.length-1;
+  }
+  const c=PD().cxc[cxcIdx];
+  if(!c.pagos_mensuales) c.pagos_mensuales=[];
+  const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
+  if(banco) banco.saldo+=total;
+  c.pagos_mensuales.push({
+    mes:document.getElementById('pm_mes').value,
+    anio:parseInt(document.getElementById('pm_anio').value),
+    fecha:document.getElementById('pm_fecha').value,
+    monto, mora, total,
+    moneda:document.getElementById('pm_moneda').value,
+    metodo:document.getElementById('pm_metodo').value,
+    banco:bancoId,
+    referencia:document.getElementById('pm_referencia').value,
+    obs:document.getElementById('pm_obs').value
+  });
+  closeModal('modalPagoMant');
+  renderCxc();
+  if(typeof renderApartamentos==='function') renderApartamentos();
+  if(typeof renderBancos==='function') renderBancos();
+  addLog('Pago mantenimiento registrado — Apt. '+apt_no+' ('+concepto+') '+document.getElementById('pm_mes').value+' RD$ '+fmt(total));
+}
+
+function generarReciboMant(){
+  const apt_no=document.getElementById('pm_apt_no').value;
+  const concepto=document.getElementById('pm_concepto').value;
+  const cliente=document.getElementById('pm_cliente_nombre').textContent;
+  const fecha=document.getElementById('pm_fecha').value;
+  const monto=getMoneyVal('pm_monto');
+  const mora=document.getElementById('pm_mora_si').value==='1'?getMoneyVal('pm_monto_mora'):0;
+  const total=monto+mora;
+  const metodo=document.getElementById('pm_metodo').value;
+  const mes=document.getElementById('pm_mes').value;
+  const anio=document.getElementById('pm_anio').value;
+  const ref=document.getElementById('pm_referencia').value;
+  const sym=document.getElementById('pm_moneda').value;
+  const a=(PD().apartamentos||[]).find(x=>x.no===apt_no)||{};
+  const docCliente = concepto==='Gas'&&a.estado==='Alquilado' ? (a.inq_doc||'—') : (a.prop_doc||'—');
+  const projName=currentProject?currentProject.name:'VIP Home';
+  const recNo='VIP-'+String(Date.now()).slice(-6);
+  ['1','2'].forEach(n=>{
+    document.getElementById('rec_logo'+n).src=LOGO_DATA;
+    document.getElementById('rec_no'+n).textContent='No. '+recNo;
+    document.getElementById('rec_proy'+n).textContent=projName;
+    document.getElementById('rec_fecha'+n).textContent=fecha;
+    document.getElementById('rec_cliente'+n).textContent=cliente;
+    document.getElementById('rec_doc'+n).textContent=docCliente;
+    document.getElementById('rec_unidad'+n).textContent=apt_no;
+    document.getElementById('rec_ncuota'+n).textContent=concepto+' — '+mes+' '+anio;
+    document.getElementById('rec_metodo'+n).textContent=metodo;
+    document.getElementById('rec_ref'+n).textContent=ref||'—';
+    document.getElementById('rec_monto'+n).textContent=fmtMoney(total,sym);
+  });
+  openModal('modalRecibo');
+}
+
+// Historial de pagos de un cargo (apto+concepto), con opción de revertir cada uno.
+function verHistorialPagosMant(apt_no,concepto){
+  const cxcIdx=(PD().cxc||[]).findIndex(c=>c.op===apt_no&&(c.concepto===concepto||(!c.concepto&&concepto==='Mantenimiento')));
+  const c=cxcIdx>=0?PD().cxc[cxcIdx]:null;
+  document.getElementById('hp_titulo').textContent='Historial — Apto. '+apt_no+' · '+concepto;
+  const pagos=(c?.pagos_mensuales||[]);
+  document.getElementById('hp_tbody').innerHTML=pagos.length?pagos.map((p,i)=>`
+    <tr>
+      <td>${p.mes} ${p.anio||''}</td>
+      <td>${p.fecha||'—'}</td>
+      <td>RD$ ${fmt(p.monto)}</td>
+      <td>${p.mora?('RD$ '+fmt(p.mora)):'—'}</td>
+      <td>${p.referencia||'—'}</td>
+      <td>${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoMant(${cxcIdx},${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty"><i class="ti ti-receipt"></i><p>Sin pagos registrados</p></td></tr>';
+  openModal('modalHistPagosMant');
+}
+
+// Revierte un pago puntual: exige motivo, descuenta el monto de la cuenta bancaria
+// donde se había acreditado, y elimina el registro del historial.
+function revertirPagoMant(cxcIdx,pagoIdx){
+  if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
+  const c=(PD().cxc||[])[cxcIdx];
+  if(!c||!c.pagos_mensuales||!c.pagos_mensuales[pagoIdx])return;
+  const motivo=prompt('Motivo de la reversión de este pago:');
+  if(motivo===null)return;
+  if(!motivo.trim()){alert('Debe indicar un motivo.');return;}
+  const p=c.pagos_mensuales[pagoIdx];
+  const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
+  if(banco) banco.saldo-=(p.total||p.monto||0);
+  c.pagos_mensuales.splice(pagoIdx,1);
+  addLog('Revirtió pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||'')+' — Motivo: '+motivo);
+  closeModal('modalHistPagosMant');
+  renderCxc();
+  if(typeof renderApartamentos==='function') renderApartamentos();
+  if(typeof renderBancos==='function') renderBancos();
+}
+
+// Recordatorio manual por WhatsApp (no automático — ver observación en el resumen del módulo).
+function enviarRecordatorioMant(apt_no,concepto){
+  const mesSel=document.getElementById('cxcMantMes');
+  const anioSel=document.getElementById('cxcMantAnio');
+  const mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
+  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  const row=cargosMantenimiento(mes,anio).find(r=>r.apt_no===apt_no&&r.concepto===concepto);
+  if(!row||!row.clienteWA){alert('Este cliente no tiene WhatsApp registrado.');return;}
+  const clean=row.clienteWA.replace(/\D/g,'');
+  const msg=encodeURIComponent(`Le habla de VIP HOME para notificarle que se ha generado una cuota pendiente de ${concepto.toLowerCase()} del mes de ${mes} ${anio}, Apto. ${apt_no}, por un monto de RD$ ${fmt(row.monto)}. Si ya realizó su pago, favor de informarnos por esta vía para validar y corregir. Disculpe los inconvenientes.`);
+  window.open(`https://wa.me/${clean}?text=${msg}`,'_blank');
 }
 
 // Módulo "Cuotas Vencidas": reusa buildCxcRows() y muestra solo las que están
