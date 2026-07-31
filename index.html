@@ -546,6 +546,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── CxC ── -->
 <div id="page-cxc" class="page">
+  <div id="cxcVentasView" class="module-view">
   <div class="bar">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblCxc')"/></div>
     <select class="filter f-status" onchange="applyTableFilters('tblCxc')">
@@ -568,6 +569,35 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       </tr></thead>
       <tbody id="tbodyCxc"></tbody>
     </table>
+  </div>
+  </div>
+
+  <!-- Vista de CxC/Cobros para proyectos de mantenimiento: cobro mensual por apto/concepto -->
+  <div id="cxcMantView" class="module-view" style="display:none">
+    <div id="cxcMantAlerta" style="display:none"></div>
+    <div class="stat-grid" id="cxcMantStats"></div>
+    <div class="bar" style="margin-top:1rem">
+      <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar apto, propietario o inquilino..." oninput="applyTableFilters('tblCxcMant')"/></div>
+      <select class="filter f-status" onchange="applyTableFilters('tblCxcMant')">
+        <option value="">Todos</option><option>Vencida</option><option>Por vencer</option><option>Pendiente</option><option>Pagada</option>
+      </select>
+      <select class="filter" id="cxcMantMes" onchange="renderCxcMant()">
+        <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+        <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+        <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+        <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+      </select>
+      <select class="filter" id="cxcMantAnio" onchange="renderCxcMant()"></select>
+      <button class="btn btn-outline" onclick="printModule('CxC Cobros','tblCxcMant')"><i class="ti ti-printer"></i> Imprimir</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblCxcMant">
+        <thead><tr>
+          <th>No. Apto</th><th>Cliente</th><th>Concepto</th><th>Monto</th><th>Estado</th><th>Acciones</th>
+        </tr></thead>
+        <tbody id="tbodyCxcMant"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -5605,12 +5635,12 @@ function renderCxc(){
   // Inject dashboard above table
   let dash = document.getElementById('cxcDashboard');
   if(!dash){
-    const page = document.getElementById('page-cxc');
-    if(page){
+    const view = document.getElementById('cxcVentasView');
+    if(view){
       dash = document.createElement('div');
       dash.id = 'cxcDashboard';
-      const bar = page.querySelector('.bar');
-      if(bar) page.insertBefore(dash, bar.nextSibling);
+      const bar = view.querySelector('.bar');
+      if(bar) bar.parentNode.insertBefore(dash, bar.nextSibling);
     }
   }
   if(dash){
