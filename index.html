@@ -192,6 +192,8 @@ tr:hover td{background:#f8f9fa;} tr:last-child td{border-bottom:none;}
 .search-wrap input{width:100%;padding:7px 12px 7px 32px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;outline:none;transition:border-color .2s;}
 .search-wrap input:focus{border-color:var(--green);}
 select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;color:var(--navy);outline:none;cursor:pointer;}
+input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:#fff;color:var(--navy);outline:none;}
+.filter-date-sep{font-size:12px;color:var(--muted);}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;}
 .modal-bg.open{display:flex;}
 .modal{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
@@ -398,11 +400,17 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── APARTAMENTOS ── -->
 <div id="page-apartamentos" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar apartamento..." oninput="filterTable('tblApts',this.value)"/></div>
-    <select class="filter" id="filtAptEstado" onchange="filterByStatus('tblApts',this.value,'estado')">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar apartamento..." oninput="applyTableFilters('tblApts')"/></div>
+    <select class="filter f-status" id="filtAptEstado" onchange="applyTableFilters('tblApts')">
       <option value="">Todos los estados</option>
       <option>Disponible</option><option>Reservado</option><option>Vendido</option><option>En construcción</option>
       <option>Habitado</option><option>Deshabitado</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblApts')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblApts')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblApts',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newApartamento()"><i class="ti ti-plus"></i> Nuevo</button>
     <button class="btn btn-outline" onclick="printModule('Apartamentos','tblApts')"><i class="ti ti-printer"></i> Imprimir</button>
@@ -421,9 +429,15 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── CLIENTES ── -->
 <div id="page-clientes" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar cliente..." oninput="filterTable('tblClientes',this.value)"/></div>
-    <select class="filter" onchange="filterByStatus('tblClientes',this.value,'estado')">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar cliente..." oninput="applyTableFilters('tblClientes')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblClientes')">
       <option value="">Todos</option><option>Activo</option><option>Inactivo</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblClientes')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblClientes')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblClientes',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newCliente()"><i class="ti ti-plus"></i> Nuevo Cliente</button>
     <button class="btn btn-outline" onclick="printModule('Clientes','tblClientes')"><i class="ti ti-printer"></i> Imprimir</button>
@@ -442,9 +456,15 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── CONTRATOS ── -->
 <div id="page-contratos" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar contrato..." oninput="filterTable('tblContratos',this.value)"/></div>
-    <select class="filter" onchange="filterByStatus('tblContratos',this.value,'estado')">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar contrato..." oninput="applyTableFilters('tblContratos')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblContratos')">
       <option value="">Todos</option><option>Borrador</option><option>Firmado</option><option>Anulado</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblContratos')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblContratos')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblContratos',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newContrato()"><i class="ti ti-plus"></i> Nuevo Contrato</button>
     <button class="btn btn-outline" onclick="printModule('Contratos','tblContratos')"><i class="ti ti-printer"></i> Imprimir</button>
@@ -463,9 +483,15 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── VENTAS ── -->
 <div id="page-ventas" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar venta..." oninput="filterTable('tblVentas',this.value)"/></div>
-    <select class="filter" onchange="filterByStatus('tblVentas',this.value,'estado')">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar venta..." oninput="applyTableFilters('tblVentas')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblVentas')">
       <option value="">Todos</option><option>Reservado</option><option>En financiamiento</option><option>Pendiente banco</option><option>Entregado</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblVentas')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblVentas')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblVentas',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-outline" onclick="printModule('Ventas','tblVentas')"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
@@ -483,9 +509,15 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── CxC ── -->
 <div id="page-cxc" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar..." oninput="filterTable('tblCxc',this.value)"/></div>
-    <select class="filter" onchange="filterByStatus('tblCxc',this.value,'estado')">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblCxc')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblCxc')">
       <option value="">Todos</option><option>Pendiente</option><option>Pagado</option><option>Vencido</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCxc')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblCxc')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblCxc',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newCxcManual()"><i class="ti ti-plus"></i> Agregar Manual</button>
     <button class="btn btn-outline" onclick="printModule('CxC Cobros','tblCxc')"><i class="ti ti-printer"></i> Imprimir</button>
@@ -505,8 +537,14 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── SUPLIDORES ── -->
 <div id="page-suplidores" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar suplidor..." oninput="filterTable('tblSuplidores',this.value)"/>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar suplidor..." oninput="applyTableFilters('tblSuplidores')"/>
     <button class="btn btn-outline" onclick="printModule('Suplidores','tblSup')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblSuplidores')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblSuplidores')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblSuplidores',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    </select>
     <button class="btn btn-primary" onclick="newSuplidor()"><i class="ti ti-plus"></i> Nuevo Suplidor</button>
     <button class="btn btn-outline" id="btnExportSup" onclick="exportTable('tblSuplidores','Suplidores')"><i class="ti ti-download"></i> Exportar</button>
   </div>
@@ -521,10 +559,16 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── GASTOS ── -->
 <div id="page-gastos" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar gasto..." oninput="filterTable('tblGastos',this.value)"/>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar gasto..." oninput="applyTableFilters('tblGastos')"/>
     <button class="btn btn-outline" onclick="printModule('Gastos','tblGasto')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
-    <select class="filter" onchange="filterByStatus('tblGastos',this.value,'pagado')">
-      <option value="">Todos</option><option value="true">Pagados</option><option value="false">Pendientes</option>
+    <select class="filter f-status" onchange="applyTableFilters('tblGastos')">
+      <option value="">Todos</option><option value="pagado">Pagados</option><option value="pendiente">Pendientes</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblGastos')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblGastos')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblGastos',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newGasto()"><i class="ti ti-plus"></i> Nuevo Gasto</button>
     <button class="btn btn-outline" id="btnExportGastos" onclick="exportTable('tblGastos','Gastos')"><i class="ti ti-download"></i> Exportar</button>
@@ -543,10 +587,16 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── CxP ── -->
 <div id="page-cxp" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar CxP..." oninput="filterTable('tblCxp',this.value)"/>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar CxP..." oninput="applyTableFilters('tblCxp')"/>
     <button class="btn btn-outline" onclick="printModule('CxP - Facturas','tblCxp')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
-    <select class="filter" onchange="filterByStatus('tblCxp',this.value,'pagado')">
-      <option value="">Todos</option><option value="false">Pendientes</option><option value="true">Pagadas</option>
+    <select class="filter f-status" onchange="applyTableFilters('tblCxp')">
+      <option value="">Todos</option><option value="pendiente">Pendientes</option><option value="pagado">Pagadas</option>
+    </select>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblCxp',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newCxpManual()"><i class="ti ti-plus"></i> Agregar Manual</button>
     <button class="btn btn-outline" id="btnExportCxp" onclick="exportTable('tblCxp','CxP')"><i class="ti ti-download"></i> Exportar</button>
@@ -565,8 +615,15 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── BANCOS ── -->
 <div id="page-bancos" class="page">
   <div class="bar">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar cuenta..." oninput="applyTableFilters('tblBancos')"/></div>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblBancos')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblBancos')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblBancos',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    </select>
     <button class="btn btn-primary" onclick="newBanco()"><i class="ti ti-plus"></i> Nueva Cuenta</button>
-  
+
     <button class="btn btn-outline" onclick="printModule('Cuentas Bancarias','tblBancos')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
   <div class="stat-grid" id="bancosStats"></div>
   <div class="tbl-wrap" style="margin-top:1rem">
@@ -580,8 +637,14 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── EMPLEADOS ── -->
 <div id="page-empleados" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar empleado..." oninput="filterTable('tblEmpleados',this.value)"/>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar empleado..." oninput="applyTableFilters('tblEmpleados')"/>
     <button class="btn btn-outline" onclick="printModule('Empleados','tblEmpleados')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblEmpleados')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblEmpleados')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblEmpleados',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    </select>
     <button class="btn btn-primary" onclick="newEmpleado()"><i class="ti ti-plus"></i> Nuevo Empleado</button>
     <button class="btn btn-outline" id="btnExportEmp" onclick="exportTable('tblEmpleados','Empleados')"><i class="ti ti-download"></i> Exportar</button>
   </div>
@@ -596,8 +659,14 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
 <!-- ── NOMINA ── -->
 <div id="page-nomina" class="page">
   <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" placeholder="Buscar nómina..." oninput="filterTable('tblNomina',this.value)"/>
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar nómina..." oninput="applyTableFilters('tblNomina')"/>
     <button class="btn btn-outline" onclick="printModule('Nómina','tblNomina')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblNomina',this.value)">
+      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
+      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    </select>
     <button class="btn btn-primary" onclick="newNomina()"><i class="ti ti-plus"></i> Registrar Pago</button>
     <button class="btn btn-outline" id="btnExportNom" onclick="exportTable('tblNomina','Nomina')"><i class="ti ti-download"></i> Exportar</button>
   </div>
@@ -701,6 +770,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>Referencia</label><input id="mc_ref" placeholder="A-1"/></div>
+      <div class="fg"><label>Fecha de registro</label><input id="mc_fecha_reg" type="date"/></div>
       <div class="fg"><label>Tipo Documento</label><select id="mc_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
       <div class="fg"><label>No. Documento</label><input id="mc_cedula"/></div>
       <div class="fg"><label>Nombres</label><input id="mc_nombres"/></div>
@@ -758,6 +828,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg" style="grid-column:1/-1"><label>Nombre / Razón Social</label><input id="sup_nombre"/></div>
+      <div class="fg"><label>Fecha de registro</label><input id="sup_fecha_reg" type="date"/></div>
       <div class="fg"><label>RNC</label><input id="sup_rnc"/></div>
       <div class="fg"><label>Tipo</label><select id="sup_tipo"><option>Proveedor materiales</option><option>Contratista</option><option>Servicios</option><option>Mantenimiento</option><option>Otro</option></select></div>
       <div class="fg"><label>Teléfono</label><input id="sup_tel"/></div>
@@ -797,6 +868,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>Banco</label><input id="bk_banco" placeholder="Banreservas"/></div>
+      <div class="fg"><label>Fecha de registro</label><input id="bk_fecha_reg" type="date"/></div>
       <div class="fg"><label>No. de Cuenta</label><input id="bk_cuenta"/></div>
       <div class="fg"><label>Tipo de Cuenta</label><select id="bk_tipo"><option>Corriente</option><option>Ahorro</option><option>Nómina</option><option>Otro</option></select></div>
       <div class="fg"><label>Moneda</label><select id="bk_moneda"><option>RD$</option><option>USD$</option></select></div>
@@ -1176,6 +1248,7 @@ select.filter{padding:7px 12px;border:1px solid var(--border);border-radius:8px;
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>No. Apartamento</label><input id="apt_no" placeholder="Ej: 3-103"/></div>
+      <div class="fg"><label>Fecha de registro</label><input id="apt_fecha_reg" type="date"/></div>
       <div class="fg"><label>Torre</label><input id="apt_torre" placeholder="Ej: A, B, Torre 1"/></div>
       <div class="fg"><label>Nivel / Piso</label><input id="apt_nivel" placeholder="Ej: 3"/></div>
       <div class="fg"><label>Bloque</label><input id="apt_bloque" placeholder="Ej: Bloque 1"/></div>
@@ -2496,7 +2569,7 @@ function renderSuplidores(){
   const _t_tbodySup=document.getElementById('tbodySup'); if(!_t_tbodySup)return; _t_tbodySup.innerHTML=STATE.suplidores.map((s,i)=>{
     const cxp=(PD().gastos||[]).filter(g=>String(g.suplidor_id)===String(s.id)&&g.credito&&!g.pagado).reduce((a,g)=>a+(g.monto||0)+(g.itbis||0),0);
     return `
-    <tr>
+    <tr data-fecha="${toISODate(s.fecha_reg)}">
       <td>${s.id}</td>
       <td><strong>${s.nombre}</strong></td>
       <td>${s.rnc||'—'}</td>
@@ -2530,6 +2603,7 @@ function viewSuplidor(i){
 function newSuplidor(){
   editingSupIdx = null;
   document.getElementById('sup_nombre').value='';
+  document.getElementById('sup_fecha_reg').value=todayISO();
   document.getElementById('sup_rnc').value='';
   if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value='';
   if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value='';
@@ -2541,6 +2615,7 @@ function editSuplidor(i){
   editingSupIdx = i;
   s=STATE.suplidores[i];
   document.getElementById('sup_nombre').value=s.nombre;
+  document.getElementById('sup_fecha_reg').value=s.fecha_reg||'';
   document.getElementById('sup_rnc').value=s.rnc||'';
   if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value=s.tipo||'';
   if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value=s.tel||'';
@@ -2549,7 +2624,7 @@ function editSuplidor(i){
 }
 
 function saveSuplidor(){
-  s={id: editingSupIdx!==null ? STATE.suplidores[editingSupIdx].id : Date.now(), nombre:v('sup_nombre'),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email')};
+  s={id: editingSupIdx!==null ? STATE.suplidores[editingSupIdx].id : Date.now(), nombre:v('sup_nombre'),fecha_reg:v('sup_fecha_reg')||todayISO(),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email')};
   if(editingSupIdx!==null){
     STATE.suplidores[editingSupIdx]=s;
     addLog('Editó suplidor: '+s.nombre);
@@ -2570,7 +2645,7 @@ function populateSupSelect(){
 function renderGastos(){
   populateSupSelect();
   const _t_tbodyGasto=document.getElementById('tbodyGasto'); if(!_t_tbodyGasto)return; _t_tbodyGasto.innerHTML=STATE.gastos.map((g,i)=>`
-    <tr>
+    <tr data-fecha="${toISODate(g.fecha)}">
       <td>${g.fecha}</td>
       <td>${g.factura||g.numncf||'—'}</td>
       <td>${(STATE.suplidores.find(s=>String(s.id)===String(g.suplidor_id))||{}).nombre||'—'}</td>
@@ -2666,7 +2741,7 @@ function renderBancos(){
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-currency-dollar"></i></div><div class="stat-label">Saldo total USD$</div><div class="stat-val">$${fmt(usdTotal)}</div><div class="stat-sub">${STATE.bancos.filter(b=>b.moneda==='USD$').length} cuentas</div></div>
   `;
   const _t_tbodyBancos=document.getElementById('tbodyBancos'); if(!_t_tbodyBancos)return; _t_tbodyBancos.innerHTML=STATE.bancos.map((b,i)=>`
-    <tr>
+    <tr data-fecha="${toISODate(b.fecha_reg)}">
       <td><strong>${b.banco}</strong></td>
       <td>${b.cuenta}</td>
       <td>${b.tipo}</td>
@@ -2684,6 +2759,7 @@ function renderBancos(){
 function newBanco(){
   editingBancoIdx = null;
   document.getElementById('bk_banco').value='';
+  document.getElementById('bk_fecha_reg').value=todayISO();
   document.getElementById('bk_cuenta').value='';
   document.getElementById('bk_tipo').value='Corriente';
   document.getElementById('bk_moneda').value='RD$';
@@ -2697,6 +2773,7 @@ function editBanco(i){
   editingBancoIdx = i;
   const b=STATE.bancos[i];
   document.getElementById('bk_banco').value=b.banco;
+  document.getElementById('bk_fecha_reg').value=b.fecha_reg||'';
   document.getElementById('bk_cuenta').value=b.cuenta;
   document.getElementById('bk_tipo').value=b.tipo;
   document.getElementById('bk_moneda').value=b.moneda;
@@ -2706,7 +2783,7 @@ function editBanco(i){
 }
 
 function saveBanco(){
-  b={id: editingBancoIdx!==null ? STATE.bancos[editingBancoIdx].id : Date.now(), banco:v('bk_banco'),cuenta:v('bk_cuenta'),tipo:v('bk_tipo'),moneda:v('bk_moneda'),titular:v('bk_titular'),saldo:parseFloat(v('bk_saldo'))||0,estado:v('bk_estado')};
+  b={id: editingBancoIdx!==null ? STATE.bancos[editingBancoIdx].id : Date.now(), banco:v('bk_banco'),fecha_reg:v('bk_fecha_reg')||todayISO(),cuenta:v('bk_cuenta'),tipo:v('bk_tipo'),moneda:v('bk_moneda'),titular:v('bk_titular'),saldo:parseFloat(v('bk_saldo'))||0,estado:v('bk_estado')};
   if(editingBancoIdx!==null){
     STATE.bancos[editingBancoIdx]=b;
     addLog('Editó cuenta bancaria: '+b.banco+' '+b.cuenta);
@@ -2720,7 +2797,7 @@ function saveBanco(){
 
 function renderEmpleados(){
   const _t_tbodyEmp=document.getElementById('tbodyEmpleados'); if(!_t_tbodyEmp)return; _t_tbodyEmp.innerHTML=STATE.empleados.map((e,i)=>`
-    <tr>
+    <tr data-fecha="${toISODate(e.fecha)}">
       <td><strong>${e.nombres} ${e.ap1||''} ${e.ap2||''}</strong></td>
       <td>${e.doc||'—'}</td>
       <td>${e.puesto||'—'}</td>
@@ -2802,7 +2879,7 @@ function saveEmpleado(){
 
 function renderNomina(){
   const _t_tbodyNomina=document.getElementById('tbodyNomina'); if(!_t_tbodyNomina)return; _t_tbodyNomina.innerHTML=STATE.nomina.map((n,i)=>`
-    <tr>
+    <tr data-fecha="${toISODate(n.fecha)}">
       <td>${n.fecha}</td>
       <td><strong>${n.nombre}</strong></td>
       <td>${n.descripcion||'—'}</td>
@@ -3054,6 +3131,73 @@ function filterByStatus(tableId,val,col){
   });
 }
 
+// ═══ FILTROS COMBINADOS: búsqueda + estado + fecha/período ═══
+// Convierte una fecha en dd/mm/yyyy, d/m/yyyy o yyyy-mm-dd a formato ISO yyyy-mm-dd.
+// Devuelve '' si no se reconoce el formato (la fila queda fuera del filtro por fecha).
+function toISODate(str){
+  if(!str) return '';
+  let m=String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return str;
+  m=String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return '';
+}
+function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+// Aplica en conjunto los 3 filtros de una tabla de módulo (búsqueda, estado y rango de
+// fecha), leyendo los controles presentes en la .bar de la página que contiene la tabla.
+// Cada fila debe traer su fecha en data-fecha (formato ISO) para poder filtrarse por rango.
+function applyTableFilters(tableId){
+  const table=document.getElementById(tableId);
+  if(!table)return;
+  const bar=table.closest('.page')?.querySelector('.bar');
+  if(!bar)return;
+  const q=(bar.querySelector('.f-search')?.value||'').trim().toLowerCase();
+  const statusVal=(bar.querySelector('.f-status')?.value||'').toLowerCase();
+  const desde=bar.querySelector('.f-desde')?.value||'';
+  const hasta=bar.querySelector('.f-hasta')?.value||'';
+  Array.from(table.querySelectorAll('tbody tr')).forEach(row=>{
+    let ok=true;
+    if(q) ok=row.innerText.toLowerCase().includes(q);
+    if(ok&&statusVal) ok=row.innerText.toLowerCase().includes(statusVal);
+    if(ok&&(desde||hasta)){
+      const f=row.dataset.fecha||'';
+      if(!f) ok=false;
+      else{
+        if(desde&&f<desde) ok=false;
+        if(hasta&&f>hasta) ok=false;
+      }
+    }
+    row.style.display=ok?'':'none';
+  });
+}
+
+// Aplica un período rápido (hoy/semana/mes/año/todos) a los campos Desde/Hasta de una tabla.
+function setPeriodo(tableId,val){
+  const table=document.getElementById(tableId);
+  const bar=table?.closest('.page')?.querySelector('.bar');
+  if(!bar)return;
+  const desdeEl=bar.querySelector('.f-desde');
+  const hastaEl=bar.querySelector('.f-hasta');
+  const hoy=new Date();
+  let desde='',hasta='';
+  if(val==='hoy'){ desde=hasta=isoDate(hoy); }
+  else if(val==='semana'){ const d=new Date(hoy); const dia=(d.getDay()+6)%7; d.setDate(d.getDate()-dia); desde=isoDate(d); hasta=isoDate(hoy); }
+  else if(val==='mes'){ desde=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-01`; hasta=isoDate(hoy); }
+  else if(val==='anio'){ desde=`${hoy.getFullYear()}-01-01`; hasta=isoDate(hoy); }
+  if(desdeEl)desdeEl.value=desde;
+  if(hastaEl)hastaEl.value=hasta;
+  applyTableFilters(tableId);
+}
+// Al editar manualmente Desde/Hasta, el selector de período pasa a "Personalizado".
+function marcarPeriodoPersonalizado(tableId){
+  const table=document.getElementById(tableId);
+  const bar=table?.closest('.page')?.querySelector('.bar');
+  const sel=bar?.querySelector('.f-periodo');
+  if(sel) sel.value='custom';
+  applyTableFilters(tableId);
+}
+
 function deleteRow(collection,index,tbodyId,rerender){
   if(!confirm('¿Está seguro de eliminar este registro?'))return;
   STATE[collection].splice(index,1);
@@ -3272,6 +3416,7 @@ function newApartamento(){
   });
   document.getElementById('apt_estado').value='Disponible';
   document.getElementById('apt_tipo').value='1 Habitación';
+  document.getElementById('apt_fecha_reg').value=todayISO();
   document.getElementById('apt_idx').value='';
   document.getElementById('apt_plano_preview').style.display='none';
   openModal('modalApartamento');
@@ -3312,6 +3457,7 @@ function editApartamento(i){
   document.getElementById('apt_acabados').value=a.acabados||'';
   document.getElementById('apt_areas_comunes').value=a.areas_comunes||'';
   document.getElementById('apt_obs').value=a.obs||'';
+  document.getElementById('apt_fecha_reg').value=a.fecha_reg||'';
   document.getElementById('apt_idx').value=i;
   if(a.plano){document.getElementById('apt_plano_img').src=a.plano;document.getElementById('apt_plano_preview').style.display='block';}
   else document.getElementById('apt_plano_preview').style.display='none';
@@ -3343,6 +3489,7 @@ function saveApartamento(){
     acabados:document.getElementById('apt_acabados').value,
     areas_comunes:document.getElementById('apt_areas_comunes').value,
     obs:document.getElementById('apt_obs').value,
+    fecha_reg:document.getElementById('apt_fecha_reg').value||todayISO(),
     plano:planoImg&&!planoImg.includes('undefined')?planoImg:null
   };
   if(!PD().apartamentos) currentProject.data.apartamentos=[];
@@ -3757,7 +3904,7 @@ function renderCxp(){
   gastos=(PD().gastos||[]).filter(g=>!g.pagado);
   const manual=PD().cxp||[];
   const all=[...gastos.map(g=>({...g,origen:'gasto'})),...manual.map(m=>({...m,origen:'manual'}))];
-  tbody.innerHTML=all.map((c,i)=>`<tr>
+  tbody.innerHTML=all.map((c,i)=>`<tr data-fecha="${toISODate(c.fecha_venc||c.fecha)}">
     <td><strong>${c.factura||c.numncf||'—'}</strong></td>
     <td>${c.suplidor||c.descripcion?.substring(0,20)||'—'}</td>
     <td>${c.descripcion||c.concepto||'—'}</td>
@@ -4388,7 +4535,8 @@ function saveCliente(){
   const cli = {
     tipo_persona: _tipoPersonaActual||'Hombre',
     sexo: _tipoPersonaActual==='Mujer'?'Femenino':'Masculino',
-    ref, estado: document.getElementById('mc_estado').value,
+    ref, fecha_reg: document.getElementById('mc_fecha_reg').value||todayISO(),
+    estado: document.getElementById('mc_estado').value,
     tipdoc: document.getElementById('mc_tipdoc').value,
     cedula: document.getElementById('mc_cedula').value,
     nombres, apellidos: document.getElementById('mc_apellidos').value,
@@ -4431,6 +4579,7 @@ function newCliente(){
   document.getElementById('mc_ecivil').value='Soltero';
   document.getElementById('mc_nac').value='Dominicana';
   document.getElementById('mc_tipdoc').value='CEDULA';
+  document.getElementById('mc_fecha_reg').value=todayISO();
   setTipoPersona('Hombre');
   openModal('modalCliente');
 }
@@ -4442,6 +4591,7 @@ function editCliente(i){
   document.getElementById('mClienteTit').textContent='Editar Cliente';
   setTipoPersona(cli.tipo_persona||'Hombre');
   document.getElementById('mc_ref').value=cli.ref||'';
+  document.getElementById('mc_fecha_reg').value=cli.fecha_reg||'';
   document.getElementById('mc_estado').value=cli.estado||'Activo';
   document.getElementById('mc_tipdoc').value=cli.tipdoc||'CEDULA';
   document.getElementById('mc_cedula').value=cli.cedula||'';
@@ -4484,7 +4634,7 @@ function renderContratos(){
   }
   tbody.innerHTML = contratos.map((ct,i) => {
     const st = {Borrador:'b-yellow',Firmado:'b-green',Anulado:'b-red'};
-    return `<tr>
+    return `<tr data-fecha="${toISODate(ct.fecha)}">
       <td><strong>${ct.no||'CT-'+String(i+1).padStart(3,'0')}</strong></td>
       <td>${ct.apt_no||'—'}<br><small style="color:var(--muted)">${ct.apt_tipo||''}</small></td>
       <td>${ct.cliente_nombre||'—'}<br><small style="color:var(--muted)">${ct.cliente_cedula||''}</small></td>
@@ -4896,7 +5046,7 @@ function renderApartamentos(){
   const canEdit = puedeHacer('editar');
   const canDel = puedeHacer('eliminar');
   const st={Disponible:'b-green',Reservado:'b-yellow',Vendido:'b-red','En construcción':'b-blue',Habitado:'b-green',Deshabitado:'b-gray'};
-  tbody.innerHTML = apts.length ? apts.map((a,i)=>`<tr>
+  tbody.innerHTML = apts.length ? apts.map((a,i)=>`<tr data-fecha="${toISODate(a.fecha_reg)}">
     <td><strong>${a.no||'—'}</strong></td>
     <td>${a.torre||'—'} / Nivel ${a.nivel||'—'}${a.bloque?' / '+a.bloque:''}</td>
     <td>${a.tipo||'—'}</td>
@@ -5066,7 +5216,7 @@ function renderVentas(){
     const st={Reservado:'b-yellow','En financiamiento':'b-blue','Pendiente banco':'b-yellow',Entregado:'b-green',Cancelado:'b-red'};
     const cxcEntry = (PD().cxc||[]).find(cx=>cx.op===v.no&&cx.estado!=='Pagado');
     const proxCuota = cxcEntry?.fecha_venc||'—';
-    return `<tr>
+    return `<tr data-fecha="${toISODate(v.fecha)}">
       <td><strong>${v.no||'—'}</strong>${v.contrato_no?`<br><small style="color:var(--muted)">${v.contrato_no}</small>`:''}</td>
       <td><strong>${v.apt_no||'—'}</strong><br><small style="color:var(--muted)">${v.apt_tipo||''}</small></td>
       <td>${v.cliente_nombre||'—'}<br><small style="color:var(--muted)">${v.cliente_cedula||''}</small></td>
@@ -5181,7 +5331,7 @@ function renderCxc(){
   tbody.innerHTML = all.map((cx,i)=>{
     const saldo = (cx.monto_total||0)-(cx.pagado_total||0);
     const pct = cx.monto_total>0?Math.min(100,Math.round((cx.pagado_total||0)/cx.monto_total*100)):0;
-    return `<tr>
+    return `<tr data-fecha="${toISODate(cx.fecha_venc)}">
       <td><strong>${cx.op||'—'}</strong></td>
       <td>${cx.cliente||'—'}<br><small style="color:var(--muted)">${cx.cliente_doc||''}</small></td>
       <td>${cx.concepto||'—'}</td>
@@ -5224,7 +5374,7 @@ function renderClientes(){
     const tel2 = cl.telefono2?`<br><small style="color:var(--muted)">${cl.telefono2}</small>`:'';
     const hasContrato = (PD().contratos||[]).some(ct=>ct.cliente_cedula===cl.cedula);
     const hasVenta = (PD().ventas||[]).some(v=>v.cliente_cedula===cl.cedula);
-    return `<tr>
+    return `<tr data-fecha="${toISODate(cl.fecha_reg)}">
       <td>${icon} <small style="color:var(--muted)">${tipo}</small></td>
       <td><strong>${cl.nombres||''} ${cl.apellidos||''}</strong>${nombre2}</td>
       <td><span class="badge b-blue">${cl.tipdoc||'CEDULA'}</span><br><small>${cl.cedula||''}</small></td>
