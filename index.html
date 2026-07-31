@@ -73,14 +73,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;color:#1b2a3b;font-size:14px;}
 .proj-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:22px 20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:10px;user-select:none;}
 .proj-card:hover{border-color:var(--green);box-shadow:0 4px 20px rgba(106,178,84,.14);transform:translateY(-2px);}
 .proj-card.sel{border-color:var(--green);box-shadow:0 0 0 3px rgba(106,178,84,.18);}
-.proj-group-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1.5rem 0 .75rem;}
-.proj-group-title:first-child{margin-top:0;}
-.proj-card.compact{padding:14px 16px;gap:6px;}
-.proj-card.compact:hover{border-color:#185fa5;box-shadow:0 4px 20px rgba(24,95,165,.14);}
-.proj-card.compact.sel{border-color:#185fa5;box-shadow:0 0 0 3px rgba(24,95,165,.18);}
-.proj-card.compact .picon{width:34px;height:34px;font-size:16px;background:#e6f1fb;color:#185fa5;}
-.proj-card.compact .pname{font-size:13px;}
-.proj-grid.compact{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;}
+.proj-card.mant{border-left:4px solid #185fa5;}
+.proj-card.mant:hover{border-color:#185fa5;box-shadow:0 4px 20px rgba(24,95,165,.14);}
+.proj-card.mant.sel{border-color:#185fa5;box-shadow:0 0 0 3px rgba(24,95,165,.18);}
+.picon.picon-mant{background:#e6f1fb;color:#185fa5;}
 .picon{width:44px;height:44px;border-radius:10px;background:var(--green-light);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--green-dark);}
 .pname{font-size:15px;font-weight:600;color:var(--navy);}
 .ptype{font-size:12px;color:var(--muted);}
@@ -2033,7 +2029,7 @@ const STATE = {
 
 function fmt(n){return (parseFloat(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
-function renderProjCard(p,i,isAdmin,compact){
+function renderProjCard(p,i,isAdmin){
   const icons={'Urbanización':'ti-building-skyscraper','Condominio':'ti-building','Proyecto':'ti-home'};
   const icon=icons[p.type]||'ti-building';
   const badge=p.status==='active'
@@ -2045,12 +2041,12 @@ function renderProjCard(p,i,isAdmin,compact){
   const statLine=esMantenimiento
     ? `${uds} unidad${uds!==1?'es':''}`
     : `${cli} cliente${cli!==1?'s':''}`;
-  return `<div class="proj-card${compact?' compact':''}" onclick="selectCard(this,${i})" ondblclick="setTimeout(()=>quickEnter(${i}),50)" style="position:relative">
+  return `<div class="proj-card${esMantenimiento?' mant':''}" onclick="selectCard(this,${i})" ondblclick="setTimeout(()=>quickEnter(${i}),50)" style="position:relative">
     ${isAdmin?`<div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2;">
       <button class="btn-icon" style="width:24px;height:24px;padding:0;" onclick="event.stopPropagation();editProyecto(${i})" title="Editar"><i class="ti ti-edit" style="font-size:12px"></i></button>
       <button class="btn-icon" style="width:24px;height:24px;padding:0;color:var(--danger);" onclick="event.stopPropagation();deleteProyecto(${i})" title="Eliminar"><i class="ti ti-trash" style="font-size:12px"></i></button>
     </div>`:''}
-    <div class="picon"><i class="ti ${icon}"></i></div>
+    <div class="picon${esMantenimiento?' picon-mant':''}"><i class="ti ${icon}"></i></div>
     <div class="pname">${p.name}</div>
     <div class="ptype">${p.type} · ${p.location}</div>
     ${badge}
@@ -2062,16 +2058,9 @@ function renderProjectGrid(){
   const grid=document.getElementById('projGrid');
   if(!grid)return;
   const isAdmin=puedeHacer('crear');
-  const ventas=[], mant=[];
-  PROYECTOS.forEach((p,i)=>{ (p.modo==='mantenimiento'?mant:ventas).push({p,i}); });
   const addVentas=isAdmin?`<div class="add-proj" onclick="newProyecto('ventas')"><i class="ti ti-plus" style="font-size:28px;color:var(--light)"></i><span>Nuevo proyecto</span></div>`:'';
-  const addMant=isAdmin?`<div class="add-proj" style="min-height:110px" onclick="newProyecto('mantenimiento')"><i class="ti ti-plus" style="font-size:22px;color:var(--light)"></i><span>Nueva torre</span></div>`:'';
-  grid.innerHTML=`
-    <div class="proj-group-title">Construcción / Ventas</div>
-    <div class="proj-grid">${ventas.map(({p,i})=>renderProjCard(p,i,isAdmin,false)).join('')}${addVentas}</div>
-    ${mant.length||isAdmin?`<div class="proj-group-title">Mantenimiento</div>
-    <div class="proj-grid compact">${mant.map(({p,i})=>renderProjCard(p,i,isAdmin,true)).join('')}${addMant}</div>`:''}
-  `;
+  const addMant=isAdmin?`<div class="add-proj" onclick="newProyecto('mantenimiento')"><i class="ti ti-plus" style="font-size:28px;color:#185fa5"></i><span>Nueva torre</span></div>`:'';
+  grid.innerHTML=`<div class="proj-grid">${PROYECTOS.map((p,i)=>renderProjCard(p,i,isAdmin)).join('')}${addVentas}${addMant}</div>`;
 }
 
 function selectCard(el,idx){
