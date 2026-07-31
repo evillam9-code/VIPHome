@@ -604,16 +604,20 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── CUOTAS VENCIDAS ── -->
 <div id="page-vencidas" class="page">
-  <div class="bar">
+  <div class="stat-grid" id="vencidasStats"></div>
+  <div class="bar" style="margin-top:1rem">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblVencidas')"/></div>
-    <span class="badge b-red" id="vencidasCount">0</span>
+    <select class="filter f-status" onchange="applyTableFilters('tblVencidas')">
+      <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
+    </select>
+    <span class="badge b-red">Vencidas: <strong id="vencidasCount">0</strong></span>
     <button class="btn btn-outline" onclick="printModule('Cuotas Vencidas','tblVencidas')"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
   <div class="tbl-wrap">
     <table id="tblVencidas">
       <thead><tr>
-        <th>No. Op.</th><th>Cliente</th><th>Concepto</th><th>Cuota</th>
-        <th>Saldo</th><th>Próx. Venc.</th><th>Atraso</th><th>Acciones</th>
+        <th>No.</th><th>Cliente</th><th>Concepto</th><th>Monto</th>
+        <th>Saldo</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th>
       </tr></thead>
       <tbody id="tbodyVencidas"></tbody>
     </table>
@@ -5694,20 +5698,23 @@ function sumarPeriodos(fechaISO,tipo,n){
   return isoDate(d);
 }
 
-// Determina si una fila de CxC (de buildCxcRows) está vencida: su próxima cuota
-// esperada (fecha_venc avanzada según cuotas_pagadas) más los días de gracia del
-// proyecto ya pasó, y todavía queda saldo pendiente.
+// Determina si una fila de CxC (de buildCxcRows) está vencida o por vencer: su
+// próxima cuota esperada (fecha_venc avanzada según cuotas_pagadas) más los días
+// de gracia del proyecto ya pasó (vencida) o está a 7 días o menos (por vencer),
+// y todavía queda saldo pendiente.
 function calcularVencimientoCxc(row){
   const saldo=(row.monto_total||0)-(row.pagado_total||0);
   const proximoVenc=sumarPeriodos(row.fecha_venc, row.tipo_cuota, row.cuotas_pagadas||0);
-  if(saldo<=0||!proximoVenc) return {vencida:false,diasAtraso:0,proximoVenc:proximoVenc||''};
+  if(saldo<=0||!proximoVenc) return {vencida:false,porVencer:false,diasAtraso:0,diasParaVencer:0,proximoVenc:proximoVenc||''};
   const diasGracia=parseInt(currentProject?.config?.dias_gracia)||5;
   const limite=new Date(proximoVenc+'T00:00:00');
   limite.setDate(limite.getDate()+diasGracia);
   const hoy=new Date();
   const vencida=hoy>limite;
   const diasAtraso=vencida?Math.floor((hoy-limite)/86400000):0;
-  return {vencida,diasAtraso,proximoVenc};
+  const diasParaVencer=Math.ceil((limite-hoy)/86400000);
+  const porVencer=!vencida&&diasParaVencer<=7;
+  return {vencida,porVencer,diasAtraso,diasParaVencer,proximoVenc};
 }
 
 // Construye la lista combinada de CxC: una fila por venta activa + las cuotas
@@ -5952,12 +5959,15 @@ function renderCxcMant(){
   </tr>`).join('') : '<tr><td colspan="6" class="empty"><i class="ti ti-credit-card"></i><p>Sin cargos configurados. Agregue montos de Mantenimiento/Gas en Apartamentos.</p></td></tr>';
 }
 
-// Abre el modal de pago para un apto+concepto+mes/año actualmente seleccionados en el filtro.
-function abrirPagoMant(apt_no,concepto){
-  const mesSel=document.getElementById('cxcMantMes');
-  const anioSel=document.getElementById('cxcMantAnio');
-  const mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
-  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+// Abre el modal de pago para un apto+concepto. Si no se pasan mes/año explícitos
+// (por ejemplo, al llamarse desde Cuotas Vencidas), usa los del filtro de CxC.
+function abrirPagoMant(apt_no,concepto,mes,anio){
+  if(!mes){
+    const mesSel=document.getElementById('cxcMantMes');
+    const anioSel=document.getElementById('cxcMantAnio');
+    mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
+    anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  }
   const row=cargosMantenimiento(mes,anio).find(r=>r.apt_no===apt_no&&r.concepto===concepto);
   if(!row){alert('No se encontró el cargo.');return;}
   document.getElementById('pm_apt_no').value=apt_no;
@@ -6101,11 +6111,15 @@ function revertirPagoMant(cxcIdx,pagoIdx){
 }
 
 // Recordatorio manual por WhatsApp (no automático — ver observación en el resumen del módulo).
-function enviarRecordatorioMant(apt_no,concepto){
-  const mesSel=document.getElementById('cxcMantMes');
-  const anioSel=document.getElementById('cxcMantAnio');
-  const mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
-  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+// Si no se pasan mes/año explícitos (por ejemplo, al llamarse desde Cuotas Vencidas),
+// usa los del filtro de CxC.
+function enviarRecordatorioMant(apt_no,concepto,mes,anio){
+  if(!mes){
+    const mesSel=document.getElementById('cxcMantMes');
+    const anioSel=document.getElementById('cxcMantAnio');
+    mes=mesSel?mesSel.value:MESES_ES[new Date().getMonth()];
+    anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  }
   const row=cargosMantenimiento(mes,anio).find(r=>r.apt_no===apt_no&&r.concepto===concepto);
   if(!row||!row.clienteWA){alert('Este cliente no tiene WhatsApp registrado.');return;}
   const clean=row.clienteWA.replace(/\D/g,'');
@@ -6113,37 +6127,112 @@ function enviarRecordatorioMant(apt_no,concepto){
   window.open(`https://wa.me/${clean}?text=${msg}`,'_blank');
 }
 
-// Módulo "Cuotas Vencidas": reusa buildCxcRows() y muestra solo las que están
-// realmente atrasadas (saldo pendiente + fecha esperada + días de gracia ya pasada),
-// ordenadas de mayor a menor atraso.
+// Busca el teléfono de un cliente de construcción/ventas por su cédula/documento,
+// para poder mandarle un recordatorio manual por WhatsApp desde Cuotas Vencidas.
+function telefonoClientePorDoc(doc){
+  if(!doc) return '';
+  const cli=(STATE.clientes||[]).find(c=>c.cedula===doc);
+  return cli?.telefono||'';
+}
+
+// Filas de Cuotas Vencidas para proyectos de construcción/ventas: reusa buildCxcRows(),
+// incluye tanto vencidas como por vencer (calcularVencimientoCxc ya calcula ambas).
+function buildVencidasRowsVentas(){
+  return buildCxcRows().map(r=>{
+    const v=calcularVencimientoCxc(r);
+    const saldo=(r.monto_total||0)-(r.pagado_total||0);
+    const estado=v.vencida?'Vencida':v.porVencer?'Por vencer':null;
+    if(!estado) return null;
+    return {
+      ref:r.op, cliente:r.cliente, clienteDoc:r.cliente_doc, concepto:r.concepto,
+      monto:r.cuota, saldo, proximoVenc:v.proximoVenc, estado,
+      diasAtraso:v.diasAtraso, diasParaVencer:v.diasParaVencer,
+      cxc_idx:r.cxc_idx, telWA:telefonoClientePorDoc(r.cliente_doc), esMant:false, sym:'US$'
+    };
+  }).filter(Boolean);
+}
+
+// Filas de Cuotas Vencidas para proyectos de mantenimiento: recorre los últimos 6
+// meses + el mes actual con cargosMantenimiento(). "Vencida" son cargos atrasados de
+// cualquiera de esos meses; "Por vencer" son los del mes actual que aún no vencen.
+function buildVencidasRowsMant(){
+  const hoy=new Date();
+  const rows=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
+    const mes=MESES_ES[d.getMonth()], anio=d.getFullYear();
+    const esMesActual = i===0;
+    cargosMantenimiento(mes,anio).forEach(r=>{
+      let estado=null;
+      if(r.estado==='Vencida') estado='Vencida';
+      else if(r.estado==='Pendiente'&&esMesActual) estado='Por vencer';
+      if(!estado) return;
+      rows.push({
+        ref:r.apt_no, cliente:r.cliente, clienteDoc:r.clienteDoc, concepto:r.concepto+' — '+mes+' '+anio,
+        monto:r.monto, saldo:r.monto, proximoVenc:mes+' '+anio, estado,
+        diasAtraso:0, diasParaVencer:0, cxc_idx:r.cxc_idx, telWA:r.clienteWA, esMant:true, sym:'RD$',
+        apt_no:r.apt_no, concepto_base:r.concepto, mes, anio
+      });
+    });
+  }
+  return rows;
+}
+
+function buildVencidasRows(){
+  const esMant = currentProject && currentProject.modo==='mantenimiento';
+  return esMant?buildVencidasRowsMant():buildVencidasRowsVentas();
+}
+
+// Módulo "Cuotas Vencidas": muestra vencidas y por vencer con colores distintos,
+// permite pagar o mandar recordatorio manual por WhatsApp, y las cuotas desaparecen
+// solas en cuanto se pagan porque las filas se recalculan desde cero cada vez.
 function renderVencidas(){
   const tbody = document.getElementById('tbodyVencidas');
   if(!tbody) return;
-  const rows = buildCxcRows()
-    .map(r=>({...r, ...calcularVencimientoCxc(r)}))
-    .filter(r=>r.vencida)
-    .sort((a,b)=>b.diasAtraso-a.diasAtraso);
+  const rows = buildVencidasRows().sort((a,b)=>{
+    if(a.estado!==b.estado) return a.estado==='Vencida'?-1:1;
+    return (b.diasAtraso||0)-(a.diasAtraso||0);
+  });
+  const vencidas=rows.filter(r=>r.estado==='Vencida');
+  const porVencer=rows.filter(r=>r.estado==='Por vencer');
+
   const countEl=document.getElementById('vencidasCount');
-  if(countEl) countEl.textContent=rows.length;
+  if(countEl) countEl.textContent=vencidas.length;
   const navBadge=document.getElementById('navVencidasCount');
-  if(navBadge){ navBadge.textContent=rows.length; navBadge.style.display=rows.length?'':'none'; }
+  if(navBadge){ navBadge.textContent=vencidas.length; navBadge.style.display=vencidas.length?'':'none'; }
+
+  const statsEl=document.getElementById('vencidasStats');
+  if(statsEl){
+    const totalVencido=vencidas.reduce((s,r)=>s+(r.saldo||0),0);
+    const totalPorVencer=porVencer.reduce((s,r)=>s+(r.saldo||0),0);
+    const sym=rows[0]?.sym||'RD$';
+    statsEl.innerHTML=`
+      <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">${sym} ${fmt(totalVencido)}</div></div>
+      <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Por vencer</div><div class="stat-val">${porVencer.length}</div><div class="stat-sub">${sym} ${fmt(totalPorVencer)}</div></div>
+    `;
+  }
+
   if(!rows.length){
-    tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-circle-check"></i><p>No hay cuotas vencidas</p></td></tr>';
+    tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-circle-check"></i><p>No hay cuotas vencidas ni por vencer</p></td></tr>';
     return;
   }
+  const st={Vencida:'b-red','Por vencer':'b-yellow'};
   tbody.innerHTML = rows.map(r=>{
-    const saldo=(r.monto_total||0)-(r.pagado_total||0);
+    const pagarBtn = r.esMant
+      ? `<button class="btn-icon" title="Registrar pago" onclick="abrirPagoMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`
+      : (r.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${r.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'');
+    const waBtn = !r.telWA ? '' : r.esMant
+      ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
+      : `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${r.telWA}','${(r.cliente||'').replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
     return `<tr>
-      <td><strong>${r.op||'—'}</strong></td>
-      <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.cliente_doc||''}</small></td>
+      <td><strong>${r.ref||'—'}</strong></td>
+      <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
       <td>${r.concepto||'—'}</td>
-      <td>US$ ${fmt(r.cuota||0)}</td>
-      <td style="color:var(--danger)"><strong>US$ ${fmt(saldo)}</strong></td>
+      <td>${r.sym} ${fmt(r.monto||0)}</td>
+      <td style="color:var(--danger)"><strong>${r.sym} ${fmt(r.saldo||0)}</strong></td>
       <td><small>${r.proximoVenc||'—'}</small></td>
-      <td><span class="badge b-red">${r.diasAtraso} día${r.diasAtraso!==1?'s':''}</span></td>
-      <td style="white-space:nowrap">
-        ${r.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${r.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
-      </td>
+      <td><span class="badge ${st[r.estado]}">${r.estado}${r.estado==='Vencida'&&r.diasAtraso?' · '+r.diasAtraso+'d':''}</span></td>
+      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
     </tr>`;
   }).join('');
 }
