@@ -6177,27 +6177,29 @@ function renderCxcMant(){
   const rows=cargosMantenimiento(mes,anio);
 
   const pagadas=rows.filter(r=>r.estado==='Pagada');
-  const vencidas=rows.filter(r=>r.estado==='Vencida');
   const pendientes=rows.filter(r=>r.estado!=='Pagada');
   const totalCobrado=pagadas.reduce((s,r)=>s+r.monto,0);
   const totalPendiente=pendientes.reduce((s,r)=>s+r.monto,0);
   const totalAnio=totalCobradoAnio(anio);
+  // Ojo: esto es el atraso real (últimos meses), NO solo el mes seleccionado arriba —
+  // así coincide siempre con el badge del menú y con Cuotas Vencidas.
+  const totalVencidas=contarVencidasActual();
 
   const statsEl=document.getElementById('cxcMantStats');
   if(statsEl) statsEl.innerHTML=`
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Cobrado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
     <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
     <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">Requieren atención</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${totalVencidas}</div><div class="stat-sub">Atraso real, todos los meses</div></div>
   `;
 
   const alertaEl=document.getElementById('cxcMantAlerta');
   if(alertaEl){
-    if(vencidas.length){
+    if(totalVencidas){
       alertaEl.style.display='block';
       alertaEl.innerHTML=`<div class="card" style="margin-bottom:1rem;background:var(--danger-l);border:1px solid #f3c9c9;">
         <div style="display:flex;align-items:center;gap:10px;color:var(--danger);font-weight:600;font-size:13px;">
-          <i class="ti ti-alert-triangle" style="font-size:18px"></i> ${vencidas.length} cuota${vencidas.length!==1?'s':''} vencida${vencidas.length!==1?'s':''} — revíselas en Cuotas Vencidas
+          <i class="ti ti-alert-triangle" style="font-size:18px"></i> ${totalVencidas} cuota${totalVencidas!==1?'s':''} vencida${totalVencidas!==1?'s':''} — revíselas en Cuotas Vencidas
         </div>
       </div>`;
     } else { alertaEl.style.display='none'; alertaEl.innerHTML=''; }
@@ -6441,6 +6443,14 @@ function buildVencidasRowsMant(){
 function buildVencidasRows(){
   const esMant = currentProject && currentProject.modo==='mantenimiento';
   return esMant?buildVencidasRowsMant():buildVencidasRowsVentas();
+}
+
+// Conteo único de "vencidas" reutilizado en todos lados que muestran esa cifra
+// (banner de CxC, tarjeta "Vencidas", badge del menú, módulo Cuotas Vencidas), para
+// que siempre coincidan. Es el atraso real (últimos meses), no solo el mes que se
+// esté viendo en el filtro de CxC.
+function contarVencidasActual(){
+  return buildVencidasRows().filter(r=>r.estado==='Vencida').length;
 }
 
 // Módulo "Cuotas Vencidas": muestra vencidas y por vencer con colores distintos,
