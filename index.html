@@ -636,29 +636,49 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── GASTOS ── -->
 <div id="page-gastos" class="page">
-  <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar gasto..." oninput="applyTableFilters('tblGastos')"/>
-    <button class="btn btn-outline" onclick="printModule('Gastos','tblGasto')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
-    <select class="filter f-status" onchange="applyTableFilters('tblGastos')">
+  <div class="stat-grid" id="gastosStats"></div>
+  <div class="bar" style="margin-top:1rem">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar gasto..." oninput="applyTableFilters('tblGasto')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblGasto')">
       <option value="">Todos</option><option value="pagado">Pagados</option><option value="pendiente">Pendientes</option>
     </select>
-    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblGastos')" title="Desde"/><span class="filter-date-sep">–</span>
-    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblGastos')" title="Hasta"/>
-    <select class="filter f-periodo" onchange="setPeriodo('tblGastos',this.value)">
+    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblGasto')" title="Desde"/><span class="filter-date-sep">–</span>
+    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblGasto')" title="Hasta"/>
+    <select class="filter f-periodo" onchange="setPeriodo('tblGasto',this.value)">
       <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
       <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newGasto()"><i class="ti ti-plus"></i> Nuevo Gasto</button>
-    <button class="btn btn-outline" id="btnExportGastos" onclick="exportTable('tblGastos','Gastos')"><i class="ti ti-download"></i> Exportar</button>
+    <button class="btn btn-outline" onclick="abrirAsignarSuplidor()"><i class="ti ti-building-store"></i> Asignar Suplidor</button>
+  </div>
+  <div class="bar" style="margin-top:.5rem">
+    <span style="font-size:12px;color:var(--muted)">Imprimir por mes:</span>
+    <select class="filter" id="gastosMesImprimir"></select>
+    <select class="filter" id="gastosAnioImprimir"></select>
+    <button class="btn btn-outline" onclick="imprimirGastosPorMes()"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
   <div class="tbl-wrap">
-    <table id="tblGasto" data-alias="tblGastos">
+    <table id="tblGasto">
       <thead><tr>
+        <th><input type="checkbox" onchange="toggleSelectAllGastos(this.checked)"/></th>
         <th>Fecha</th><th>No. Factura</th><th>Suplidor</th><th>Descripción</th>
         <th>Monto</th><th>ITBIS</th><th>Total</th><th>Método</th><th>Estado</th><th>Acciones</th>
       </tr></thead>
       <tbody id="tbodyGasto"></tbody>
     </table>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Gastos por Mes (<span id="gastosResumenAnio"></span>)</span>
+      <button class="btn btn-outline btn-sm" onclick="exportarResumenGastos()"><i class="ti ti-download"></i> Exportar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblGastosResumen">
+        <thead><tr><th>Mes</th><th>Cantidad</th><th>Monto</th><th>ITBIS</th><th>Total</th></tr></thead>
+        <tbody id="tbodyGastosResumen"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1003,6 +1023,16 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <div class="form-grid full"><div class="fg"><label>Observación</label><textarea id="gs_obs"></textarea></div></div>
   </div>
   <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalGasto')">Cancelar</button><button class="btn btn-primary" onclick="saveGasto()"><i class="ti ti-check"></i> Guardar</button></div></div>
+</div>
+
+<!-- Asignar suplidor masivamente a los gastos marcados con checkbox -->
+<div class="modal-bg" id="modalAsignarSuplidor">
+  <div class="modal" style="max-width:420px"><div class="modal-head"><h2>Asignar Suplidor</h2><button class="modal-close" onclick="closeModal('modalAsignarSuplidor')">×</button></div>
+  <div class="modal-body">
+    <p id="as_count" style="font-size:13px;color:var(--muted);margin-bottom:12px"></p>
+    <div class="fg"><label>Suplidor</label><select id="as_suplidor"><option value="">-- Seleccionar --</option></select></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalAsignarSuplidor')">Cancelar</button><button class="btn btn-primary" onclick="aplicarAsignarSuplidor()"><i class="ti ti-check"></i> Aplicar</button></div></div>
 </div>
 
 <!-- Banco -->
@@ -2953,6 +2983,7 @@ function renderGastos(){
   populateSupSelect();
   const _t_tbodyGasto=document.getElementById('tbodyGasto'); if(!_t_tbodyGasto)return; _t_tbodyGasto.innerHTML=STATE.gastos.map((g,i)=>`
     <tr data-fecha="${toISODate(g.fecha)}">
+      <td><input type="checkbox" class="gasto-check" data-idx="${i}"/></td>
       <td>${g.fecha}</td>
       <td>${g.factura||g.numncf||'—'}</td>
       <td>${(STATE.suplidores.find(s=>String(s.id)===String(g.suplidor_id))||{}).nombre||'—'}</td>
@@ -2967,6 +2998,110 @@ function renderGastos(){
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('gastos',${i},'tbodyGasto',renderGastos)"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`).join('');
+  initSelectMesAnioGastos();
+  renderGastosResumen();
+}
+
+// Llena los selects de Mes/Año usados para "Imprimir por mes" (una sola vez).
+function initSelectMesAnioGastos(){
+  const mesSel=document.getElementById('gastosMesImprimir');
+  const anioSel=document.getElementById('gastosAnioImprimir');
+  if(mesSel && mesSel.dataset.init!=='1'){
+    mesSel.innerHTML=MESES_ES.map(m=>`<option>${m}</option>`).join('');
+    mesSel.value=MESES_ES[new Date().getMonth()];
+    mesSel.dataset.init='1';
+  }
+  if(anioSel && anioSel.dataset.init!=='1'){
+    const y=new Date().getFullYear();
+    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+    anioSel.value=y;
+    anioSel.dataset.init='1';
+  }
+}
+
+// Filtra la tabla por el mes/año elegidos (mismo mecanismo que el filtro de fecha
+// normal) y luego imprime — así el reporte impreso siempre coincide con lo filtrado.
+function imprimirGastosPorMes(){
+  const mesSel=document.getElementById('gastosMesImprimir');
+  const anioSel=document.getElementById('gastosAnioImprimir');
+  const mesIdx=MESES_ES.indexOf(mesSel.value);
+  const anio=parseInt(anioSel.value);
+  const desde=`${anio}-${String(mesIdx+1).padStart(2,'0')}-01`;
+  const ultimoDia=new Date(anio,mesIdx+1,0).getDate();
+  const hasta=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+  const bar=document.getElementById('tblGasto').closest('.module-view, .page').querySelector('.bar');
+  bar.querySelector('.f-desde').value=desde;
+  bar.querySelector('.f-hasta').value=hasta;
+  marcarPeriodoPersonalizado('tblGasto');
+  printModule(`Gastos — ${mesSel.value} ${anio}`,'tblGasto');
+}
+
+// Marca/desmarca todos los checkboxes de las filas actualmente visibles (respeta
+// los filtros activos — así "buscar CORAASAN" + seleccionar todo solo toma esas filas).
+function toggleSelectAllGastos(checked){
+  document.querySelectorAll('#tblGasto tbody tr').forEach(tr=>{
+    if(tr.style.display!=='none'){
+      const cb=tr.querySelector('.gasto-check');
+      if(cb) cb.checked=checked;
+    }
+  });
+}
+
+function abrirAsignarSuplidor(){
+  const checked=[...document.querySelectorAll('#tblGasto .gasto-check:checked')];
+  if(!checked.length){alert('Marque el checkbox de al menos un gasto (puede buscar primero para filtrar).');return;}
+  document.getElementById('as_count').textContent=`Se asignará el suplidor a ${checked.length} gasto${checked.length!==1?'s':''} seleccionado${checked.length!==1?'s':''}.`;
+  const sel=document.getElementById('as_suplidor');
+  sel.innerHTML='<option value="">-- Seleccionar --</option>'+(STATE.suplidores||[]).map(s=>`<option value="${s.id}">${s.nombre}</option>`).join('');
+  openModal('modalAsignarSuplidor');
+}
+
+function aplicarAsignarSuplidor(){
+  const suplidorId=document.getElementById('as_suplidor').value;
+  if(!suplidorId){alert('Seleccione un suplidor.');return;}
+  const idxs=[...document.querySelectorAll('#tblGasto .gasto-check:checked')].map(cb=>parseInt(cb.dataset.idx));
+  idxs.forEach(i=>{ if(STATE.gastos[i]) STATE.gastos[i].suplidor_id=suplidorId; });
+  const nombreSup=(STATE.suplidores||[]).find(s=>String(s.id)===String(suplidorId))?.nombre||'';
+  closeModal('modalAsignarSuplidor');
+  renderGastos();
+  addLog('Asignó suplidor "'+nombreSup+'" a '+idxs.length+' gasto(s) seleccionados');
+}
+
+// Dashboard de Gastos: totales del año actual y desglose mes a mes.
+function renderGastosResumen(){
+  const tbody=document.getElementById('tbodyGastosResumen');
+  if(!tbody) return;
+  const anio=new Date().getFullYear();
+  const anioEl=document.getElementById('gastosResumenAnio');
+  if(anioEl) anioEl.textContent=anio;
+  const porMes=MESES_ES.map((mes,idx)=>{
+    const items=(STATE.gastos||[]).filter(g=>{
+      const iso=toISODate(g.fecha);
+      if(!iso) return false;
+      const [y,m]=iso.split('-');
+      return parseInt(y)===anio && parseInt(m)===idx+1;
+    });
+    const monto=items.reduce((s,g)=>s+(g.monto||0),0);
+    const itbis=items.reduce((s,g)=>s+(g.itbis||0),0);
+    return {mes, cantidad:items.length, monto, itbis, total:monto+itbis};
+  });
+  const totalAnio=porMes.reduce((s,m)=>s+m.total,0);
+  const mesActual=MESES_ES[new Date().getMonth()];
+  const totalMesActual=porMes.find(m=>m.mes===mesActual)?.total||0;
+
+  const statsEl=document.getElementById('gastosStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Gastado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Gastado en ${mesActual}</div><div class="stat-val">RD$ ${fmt(totalMesActual)}</div><div class="stat-sub">Mes actual</div></div>
+  `;
+
+  tbody.innerHTML=porMes.map(m=>`<tr>
+    <td>${m.mes}</td><td>${m.cantidad}</td><td>RD$ ${fmt(m.monto)}</td><td>RD$ ${fmt(m.itbis)}</td><td><strong>RD$ ${fmt(m.total)}</strong></td>
+  </tr>`).join('');
+}
+
+function exportarResumenGastos(){
+  exportTable('tblGastosResumen','Resumen Gastos '+new Date().getFullYear());
 }
 
 function newGasto(){
@@ -3592,14 +3727,19 @@ function filterByStatus(tableId,val,col){
 }
 
 // ═══ FILTROS COMBINADOS: búsqueda + estado + fecha/período ═══
-// Convierte una fecha en dd/mm/yyyy, d/m/yyyy o yyyy-mm-dd a formato ISO yyyy-mm-dd.
-// Devuelve '' si no se reconoce el formato (la fila queda fuera del filtro por fecha).
+// Convierte una fecha en dd/mm/yyyy, d/m/yyyy, mm/dd/yy o yyyy-mm-dd a formato ISO
+// yyyy-mm-dd. Devuelve '' si no se reconoce el formato (la fila queda fuera del
+// filtro por fecha).
 function toISODate(str){
   if(!str) return '';
   let m=String(str).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if(m) return str;
   m=String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  // Fechas importadas en formato MM/DD/YY (año de 2 dígitos, orden mes/día — típico
+  // de exportaciones de Excel/QuickBooks en inglés). Se asume siglo 2000.
+  m=String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{2})$/);
+  if(m) return `20${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
   return '';
 }
 function isoDate(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
