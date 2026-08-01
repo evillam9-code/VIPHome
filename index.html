@@ -628,7 +628,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   </div>
   <div class="tbl-wrap">
     <table id="tblSuplidores">
-      <thead><tr><th>ID</th><th>Nombre</th><th>RNC</th><th>Teléfono</th><th>Email</th><th>CxP Pendiente</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>ID</th><th>Nombre</th><th>RNC</th><th>Teléfono</th><th>Email</th><th>Dirección</th><th>Acciones</th></tr></thead>
       <tbody id="tbodySup"></tbody>
     </table>
   </div>
@@ -684,11 +684,15 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── CxP ── -->
 <div id="page-cxp" class="page">
-  <div class="bar">
-    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar CxP..." oninput="applyTableFilters('tblCxp')"/>
-    <button class="btn btn-outline" onclick="printModule('CxP - Facturas','tblCxp')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
+  <div class="stat-grid" id="cxpStats"></div>
+  <div class="bar" style="margin-top:1rem">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar factura, suplidor..." oninput="applyTableFilters('tblCxp')"/>
+    <button class="btn btn-outline" onclick="printModule('CxP - Cuentas por Pagar','tblCxp')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
     <select class="filter f-status" onchange="applyTableFilters('tblCxp')">
-      <option value="">Todos</option><option value="pendiente">Pendientes</option><option value="pagado">Pagadas</option>
+      <option value="">Todos los estados</option><option value="vencida">Vencidas</option><option value="por vencer">Por vencer</option><option value="pendiente">Pendientes</option><option value="pagada">Pagadas</option>
+    </select>
+    <select class="filter f-extra" id="cxpFiltroSuplidor" onchange="applyTableFilters('tblCxp')">
+      <option value="">-- Todos los suplidores --</option>
     </select>
     <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Desde"/><span class="filter-date-sep">–</span>
     <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Hasta"/>
@@ -696,17 +700,30 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
       <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
-    <button class="btn btn-primary" onclick="newCxpManual()"><i class="ti ti-plus"></i> Agregar Manual</button>
-    <button class="btn btn-outline" id="btnExportCxp" onclick="exportTable('tblCxp','CxP')"><i class="ti ti-download"></i> Exportar</button>
+    <button class="btn btn-primary" onclick="newCxpManual()"><i class="ti ti-plus"></i> Nueva Factura</button>
+    <button class="btn btn-outline" onclick="abrirImportarGastosCxp()"><i class="ti ti-file-import"></i> Importar de Gastos</button>
   </div>
   <div class="tbl-wrap">
     <table id="tblCxp">
       <thead><tr>
-        <th>No. Factura</th><th>Suplidor</th><th>Concepto</th><th>Monto</th>
-        <th>ITBIS</th><th>Total</th><th>Vence</th><th>Banco</th><th>Estado</th><th>Acciones</th>
+        <th>No. Factura</th><th>Suplidor</th><th>Concepto</th><th>Total</th>
+        <th>Pagado</th><th>Saldo</th><th>Vence</th><th>Estado</th><th>Acciones</th>
       </tr></thead>
       <tbody id="tbodyCxp"></tbody>
     </table>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Cuentas por Pagar — Debido por Mes (<span id="cxpResumenAnio"></span>)</span>
+      <button class="btn btn-outline btn-sm" onclick="exportarResumenCxp()"><i class="ti ti-download"></i> Exportar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblCxpResumen">
+        <thead><tr><th>Mes (vencimiento)</th><th>Facturas</th><th>Total</th><th>Pagado</th><th>Saldo pendiente</th></tr></thead>
+        <tbody id="tbodyCxpResumen"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -996,6 +1013,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg"><label>Tipo</label><select id="sup_tipo"><option>Proveedor materiales</option><option>Contratista</option><option>Servicios</option><option>Mantenimiento</option><option>Otro</option></select></div>
       <div class="fg"><label>Teléfono</label><input id="sup_tel"/></div>
       <div class="fg"><label>Email</label><input id="sup_email" type="email"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="sup_dir"/></div>
       <div class="fg"><label>Contacto</label><input id="sup_contacto"/></div>
       <div class="fg"><label>Cuenta Bancaria</label><input id="sup_cuenta"/></div>
     </div>
@@ -1980,10 +1998,10 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 </div>
 </div>
 
-<!-- ═══ MODAL CxP MANUAL ═══ -->
+<!-- ═══ MODAL CxP: NUEVA FACTURA ═══ -->
 <div class="modal-bg" id="modalCxpManual">
 <div class="modal" style="max-width:560px">
-  <div class="modal-head"><h2 id="mCxpTit">Nueva CxP</h2><button class="modal-close" onclick="closeModal('modalCxpManual')">×</button></div>
+  <div class="modal-head"><h2 id="mCxpTit">Nueva Factura de Suplidor</h2><button class="modal-close" onclick="closeModal('modalCxpManual')">×</button></div>
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>No. Factura</label><input id="cxpm_factura" placeholder="FAC-001"/></div>
@@ -1993,27 +2011,162 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         </select>
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Concepto</label><input id="cxpm_concepto" placeholder="Descripción"/></div>
+      <div class="fg"><label>Fecha de emisión</label><input id="cxpm_fecha_emision" type="date"/></div>
+      <div class="fg"><label>Fecha de vencimiento</label><input id="cxpm_fecha_venc" type="date"/></div>
       <div class="fg"><label>Monto (sin ITBIS)</label><input id="cxpm_monto" placeholder="0.00" oninput="moneyInput(this);calcCxpTotal()"/></div>
       <div class="fg"><label>ITBIS (18%)</label><input id="cxpm_itbis" placeholder="0.00" oninput="moneyInput(this);calcCxpTotal()"/></div>
       <div class="fg"><label>Total</label><input id="cxpm_total" placeholder="0.00" readonly style="background:#f8f9fb;font-weight:600;color:var(--navy)"/></div>
-      <div class="fg"><label>Fecha vencimiento</label><input id="cxpm_fecha_venc" type="date"/></div>
-      <div class="fg"><label>Método de pago</label>
-        <select id="cxpm_metodo"><option>Transferencia</option><option>Depósito</option><option>Efectivo</option><option>Cheque</option></select>
-      </div>
-      <div class="fg" style="grid-column:1/-1"><label>Cuenta bancaria origen (pago)</label>
-        <select id="cxpm_banco" style="padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:#fff;color:var(--navy);outline:none;width:100%">
-          <option value="">-- Seleccionar --</option>
-        </select>
-      </div>
-      <div class="fg"><label>Estado</label>
-        <select id="cxpm_pagado"><option value="false">Pendiente</option><option value="true">Pagado</option></select>
-      </div>
       <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="cxpm_obs" rows="2"></textarea></div>
     </div>
+    <input type="hidden" id="cxpm_id"/>
   </div>
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal('modalCxpManual')">Cancelar</button>
     <button class="btn btn-primary" onclick="saveCxpManual()"><i class="ti ti-check"></i> Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL CxP: REGISTRAR PAGO ═══ -->
+<div class="modal-bg" id="modalPagoCxp">
+<div class="modal" style="max-width:520px">
+  <div class="modal-head"><h2>Registrar Pago a Suplidor</h2><button class="modal-close" onclick="closeModal('modalPagoCxp')">×</button></div>
+  <div class="modal-body">
+    <div style="background:var(--danger-l);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;">
+      <strong id="pcx_suplidor">Suplidor</strong><br>
+      <span style="color:var(--muted)">Factura <strong id="pcx_factura">—</strong> · <span id="pcx_concepto">—</span> · Saldo pendiente: <strong id="pcx_saldo" style="color:var(--danger)">RD$ 0.00</strong></span>
+    </div>
+    <div class="form-grid">
+      <div class="fg"><label>Fecha de pago</label><input id="pcx_fecha" type="date"/></div>
+      <div class="fg"><label>Monto a pagar</label><input id="pcx_monto" placeholder="0.00" oninput="moneyInput(this)"/></div>
+      <div class="fg"><label>Método de pago</label>
+        <select id="pcx_metodo"><option>Transferencia</option><option>Depósito</option><option>Efectivo</option><option>Cheque</option></select>
+      </div>
+      <div class="fg"><label>Cuenta bancaria origen</label>
+        <select id="pcx_banco" style="padding:9px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;background:#fff;color:var(--navy);outline:none;width:100%">
+          <option value="">-- Seleccionar cuenta --</option>
+        </select>
+      </div>
+      <div class="fg" style="grid-column:1/-1"><label>No. Referencia / Confirmación</label><input id="pcx_referencia" placeholder="Ej: TRF-20260101-001"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Motivo / Observaciones</label><textarea id="pcx_obs" rows="2" placeholder="Motivo del pago"></textarea></div>
+    </div>
+    <input type="hidden" id="pcx_id"/>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modalPagoCxp')">Cancelar</button>
+    <button class="btn btn-success" onclick="generarReciboCxp()"><i class="ti ti-printer"></i> Generar Recibo</button>
+    <button class="btn btn-primary" onclick="savePagoCxp()"><i class="ti ti-check"></i> Registrar Pago</button>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL CxP: HISTORIAL DE PAGOS ═══ -->
+<div class="modal-bg" id="modalHistCxp">
+<div class="modal" style="max-width:600px">
+  <div class="modal-head"><h2 id="hcx_titulo">Historial de pagos</h2><button class="modal-close" onclick="closeModal('modalHistCxp')">×</button></div>
+  <div class="modal-body">
+    <div class="tbl-wrap"><table style="font-size:13px">
+      <thead><tr><th>Fecha</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Acciones</th></tr></thead>
+      <tbody id="hcx_tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalHistCxp')">Cerrar</button></div>
+</div>
+</div>
+
+<!-- ═══ MODAL CxP: IMPORTAR DE GASTOS A CRÉDITO ═══ -->
+<div class="modal-bg" id="modalImportarGastoCxp">
+<div class="modal" style="max-width:640px">
+  <div class="modal-head"><h2>Importar Gastos a Crédito</h2><button class="modal-close" onclick="closeModal('modalImportarGastoCxp')">×</button></div>
+  <div class="modal-body">
+    <p style="font-size:13px;color:var(--muted);margin-top:0">Gastos marcados como "a crédito" en el módulo de Gastos que aún no tienen una factura de CxP asociada. Impórtelos para poder pagarlos, generar recibo y llevar su historial aquí.</p>
+    <div class="tbl-wrap"><table style="font-size:13px">
+      <thead><tr><th>Fecha</th><th>Suplidor</th><th>Descripción</th><th>Total</th><th></th></tr></thead>
+      <tbody id="igc_tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalImportarGastoCxp')">Cerrar</button></div>
+</div>
+</div>
+
+<!-- ═══ MODAL CxP: RECIBO DE PAGO A SUPLIDOR ═══ -->
+<div class="modal-bg" id="modalReciboCxp">
+<div class="modal" style="max-width:700px">
+  <div class="modal-head"><h2><i class="ti ti-receipt"></i> Recibo de Pago a Suplidor</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-success btn-sm" onclick="printReciboCxp()"><i class="ti ti-printer"></i> Imprimir</button>
+      <button class="modal-close" onclick="closeModal('modalReciboCxp')">×</button>
+    </div>
+  </div>
+  <div class="modal-body" style="padding:0">
+    <div id="reciboContentCxp" style="font-family:'Segoe UI',sans-serif;color:#1b2a3b;background:#fff;">
+      <!-- COPIA 1 -->
+      <div class="recibo-copia" style="padding:30px 40px;border-bottom:3px dashed #ccc;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="recx_logo1"/>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.08em;">Copia — Empresa</div>
+            <div style="font-size:18px;font-weight:700;color:#1b2a3b;">COMPROBANTE DE PAGO</div>
+            <div style="font-size:12px;color:#6ab254;font-weight:500;" id="recx_no1">No. 0001</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;margin-bottom:14px;">
+          <div><span style="color:#8a9bb0;">Proyecto:</span> <strong id="recx_proy1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Fecha:</span> <strong id="recx_fecha1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Suplidor:</span> <strong id="recx_suplidor1">—</strong></div>
+          <div><span style="color:#8a9bb0;">RNC/Doc:</span> <strong id="recx_doc1">—</strong></div>
+          <div><span style="color:#8a9bb0;">No. Factura:</span> <strong id="recx_factura1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Método:</span> <strong id="recx_metodo1">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Referencia:</span> <strong id="recx_ref1">—</strong></div>
+        </div>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Concepto</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="recx_concepto1">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO PAGADO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="recx_monto1">$0.00</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Suplidor</div>
+        </div>
+      </div>
+      <!-- COPIA 2 -->
+      <div class="recibo-copia" style="padding:30px 40px;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="recx_logo2"/>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.08em;">Copia — Suplidor</div>
+            <div style="font-size:18px;font-weight:700;color:#1b2a3b;">COMPROBANTE DE PAGO</div>
+            <div style="font-size:12px;color:#6ab254;font-weight:500;" id="recx_no2">No. 0001</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;margin-bottom:14px;">
+          <div><span style="color:#8a9bb0;">Proyecto:</span> <strong id="recx_proy2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Fecha:</span> <strong id="recx_fecha2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Suplidor:</span> <strong id="recx_suplidor2">—</strong></div>
+          <div><span style="color:#8a9bb0;">RNC/Doc:</span> <strong id="recx_doc2">—</strong></div>
+          <div><span style="color:#8a9bb0;">No. Factura:</span> <strong id="recx_factura2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Método:</span> <strong id="recx_metodo2">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Referencia:</span> <strong id="recx_ref2">—</strong></div>
+        </div>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Concepto</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="recx_concepto2">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO PAGADO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="recx_monto2">$0.00</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Suplidor</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 </div>
@@ -2280,7 +2433,7 @@ function applyNavPermissions(){
   const adminEl=document.querySelector(`.nav-item[onclick*="showPage('admin')"]`);
   if(adminEl) adminEl.style.display = (u.rol==='Administrador') ? '' : 'none';
   if(currentProject && currentProject.modo==='mantenimiento'){
-    ['clientes','contratos','ventas','cxp'].forEach(k=>{
+    ['clientes','contratos','ventas'].forEach(k=>{
       const el=document.querySelector(`.nav-item[onclick*="showPage('${k}')"]`);
       if(el) el.style.display='none';
     });
@@ -2903,22 +3056,20 @@ function saveCxc(){
 }
 
 function renderSuplidores(){
-  const _t_tbodySup=document.getElementById('tbodySup'); if(!_t_tbodySup)return; _t_tbodySup.innerHTML=STATE.suplidores.map((s,i)=>{
-    const cxp=(PD().gastos||[]).filter(g=>String(g.suplidor_id)===String(s.id)&&g.credito&&!g.pagado).reduce((a,g)=>a+(g.monto||0)+(g.itbis||0),0);
-    return `
+  const _t_tbodySup=document.getElementById('tbodySup'); if(!_t_tbodySup)return; _t_tbodySup.innerHTML=STATE.suplidores.map((s,i)=>`
     <tr data-fecha="${toISODate(s.fecha_reg)}">
       <td>${s.id}</td>
       <td><strong>${s.nombre}</strong></td>
       <td>${s.rnc||'—'}</td>
       <td>${s.tel||'—'}</td>
       <td>${s.email||'—'}</td>
-      <td>${cxp>0?'RD$ '+fmt(cxp):'—'}</td>
+      <td>${s.dir||'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn-icon" onclick="viewSuplidor(${i})"><i class="ti ti-eye"></i></button>
         <button class="btn-icon" onclick="editSuplidor(${i})"><i class="ti ti-edit"></i></button>
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('suplidores',${i},'tbodySup',renderSuplidores)"><i class="ti ti-trash"></i></button>
       </td>
-    </tr>`;}).join('');
+    </tr>`).join('');
 }
 
 function viewSuplidor(i){
@@ -2929,6 +3080,9 @@ function viewSuplidor(i){
     <div class="detail-grid">
       <div class="dg-row"><div class="dg-label">ID</div><div class="dg-val">${s.id}</div></div>
       <div class="dg-row"><div class="dg-label">RNC</div><div class="dg-val">${s.rnc||'—'}</div></div>
+      <div class="dg-row"><div class="dg-label">Teléfono</div><div class="dg-val">${s.tel||'—'}</div></div>
+      <div class="dg-row"><div class="dg-label">Email</div><div class="dg-val">${s.email||'—'}</div></div>
+      <div class="dg-row"><div class="dg-label">Dirección</div><div class="dg-val">${s.dir||'—'}</div></div>
     </div>
     <div class="form-section">Gastos asociados</div>
     <div class="tbl-wrap"><table><thead><tr><th>Descripción</th><th>Fecha</th><th>Monto RD$</th><th>Estado</th></tr></thead><tbody>
@@ -2945,6 +3099,7 @@ function newSuplidor(){
   if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value='';
   if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value='';
   if(document.getElementById('sup_email')) document.getElementById('sup_email').value='';
+  if(document.getElementById('sup_dir')) document.getElementById('sup_dir').value='';
   openModal('modalSuplidor');
 }
 
@@ -2957,11 +3112,12 @@ function editSuplidor(i){
   if(document.getElementById('sup_tipo')) document.getElementById('sup_tipo').value=s.tipo||'';
   if(document.getElementById('sup_tel')) document.getElementById('sup_tel').value=s.tel||'';
   if(document.getElementById('sup_email')) document.getElementById('sup_email').value=s.email||'';
+  if(document.getElementById('sup_dir')) document.getElementById('sup_dir').value=s.dir||'';
   openModal('modalSuplidor');
 }
 
 function saveSuplidor(){
-  s={id: editingSupIdx!==null ? STATE.suplidores[editingSupIdx].id : Date.now(), nombre:v('sup_nombre'),fecha_reg:v('sup_fecha_reg')||todayISO(),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email')};
+  s={id: editingSupIdx!==null ? STATE.suplidores[editingSupIdx].id : Date.now(), nombre:v('sup_nombre'),fecha_reg:v('sup_fecha_reg')||todayISO(),rnc:v('sup_rnc'),tipo:v('sup_tipo'),tel:v('sup_tel'),email:v('sup_email'),dir:v('sup_dir')};
   if(editingSupIdx!==null){
     STATE.suplidores[editingSupIdx]=s;
     addLog('Editó suplidor: '+s.nombre);
@@ -3756,10 +3912,12 @@ function applyTableFilters(tableId){
   const statusVal=(bar.querySelector('.f-status')?.value||'').toLowerCase();
   const desde=bar.querySelector('.f-desde')?.value||'';
   const hasta=bar.querySelector('.f-hasta')?.value||'';
+  const extras=[...bar.querySelectorAll('.f-extra')].map(el=>(el.value||'').toLowerCase()).filter(Boolean);
   Array.from(table.querySelectorAll('tbody tr')).forEach(row=>{
     let ok=true;
     if(q) ok=row.innerText.toLowerCase().includes(q);
     if(ok&&statusVal) ok=row.innerText.toLowerCase().includes(statusVal);
+    if(ok) extras.forEach(val=>{ if(ok&&!row.innerText.toLowerCase().includes(val)) ok=false; });
     if(ok&&(desde||hasta)){
       const f=row.dataset.fecha||'';
       if(!f) ok=false;
@@ -4536,76 +4694,368 @@ function editCxc(i){
 }
 
 // ═══════════════════════════════════════════════════
-// MÓDULO CxP MANUAL
+// MÓDULO CxP — CUENTAS POR PAGAR A SUPLIDORES
 // ═══════════════════════════════════════════════════
+// Cada factura vive en PD().cxp con un arreglo pagos[] (mismo patrón que
+// pagos_mensuales en CxC-mantenimiento): permite pagos parciales, recibo por
+// pago, historial completo y reversión de cualquier pago ya registrado.
+function cxpTotal(c){ return (c.monto||0)+(c.itbis||0); }
+function cxpPagadoTotal(c){ return (c.pagos||[]).reduce((s,p)=>s+(p.monto||0),0); }
+function cxpSaldo(c){ return Math.max(0, cxpTotal(c)-cxpPagadoTotal(c)); }
+
+// Estado según saldo pendiente y fecha de vencimiento (mismo criterio de
+// "vencida/por vencer/pendiente/pagada" que Cuotas Vencidas en CxC).
+function estadoCxp(c){
+  const saldo=cxpSaldo(c);
+  if(saldo<=0.009) return 'Pagada';
+  const fv=c.fecha_venc||c.fecha_emision;
+  if(!fv) return 'Pendiente';
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const venc=new Date(fv+'T00:00:00');
+  const diffDias=Math.round((venc-hoy)/86400000);
+  if(diffDias<0) return 'Vencida';
+  if(diffDias<=7) return 'Por vencer';
+  return 'Pendiente';
+}
+
+function buildCxpRows(){
+  return (PD().cxp||[]).map(c=>{
+    if(!c.id) c.id=Date.now()+Math.floor(Math.random()*1000); // backfill ids en datos antiguos
+    return {...c, total:cxpTotal(c), pagadoTotal:cxpPagadoTotal(c), saldo:cxpSaldo(c), estado:estadoCxp(c)};
+  });
+}
+
 function renderCxp(){
-  tbody=document.getElementById('tbodyCxp');
+  const tbody=document.getElementById('tbodyCxp');
   if(!tbody)return;
-  gastos=(PD().gastos||[]).filter(g=>!g.pagado);
-  const manual=PD().cxp||[];
-  const all=[...gastos.map(g=>({...g,origen:'gasto'})),...manual.map(m=>({...m,origen:'manual'}))];
-  tbody.innerHTML=all.map((c,i)=>`<tr data-fecha="${toISODate(c.fecha_venc||c.fecha)}">
-    <td><strong>${c.factura||c.numncf||'—'}</strong></td>
-    <td>${c.suplidor||c.descripcion?.substring(0,20)||'—'}</td>
-    <td>${c.descripcion||c.concepto||'—'}</td>
-    <td>RD$ ${fmt(c.monto)}</td>
-    <td>RD$ ${fmt(c.itbis||0)}</td>
-    <td><strong>RD$ ${fmt((c.monto||0)+(c.itbis||0))}</strong></td>
-    <td>${c.fecha_venc||c.fecha||'—'}</td>
-    <td>${c.banco||'—'}</td>
-    <td><span class="badge ${c.pagado?'b-green':'b-yellow'}">${c.pagado?'Pagado':'Pendiente'}</span></td>
+  const rows=buildCxpRows().sort((a,b)=>(a.fecha_venc||'').localeCompare(b.fecha_venc||''));
+
+  const supSel=document.getElementById('cxpFiltroSuplidor');
+  if(supSel){
+    const actual=supSel.value;
+    const nombres=[...new Set((PD().cxp||[]).map(c=>c.suplidor).filter(Boolean))].sort();
+    supSel.innerHTML='<option value="">-- Todos los suplidores --</option>'+nombres.map(n=>`<option value="${n}">${n}</option>`).join('');
+    if(nombres.includes(actual)) supSel.value=actual;
+  }
+
+  const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
+  const canEdit=puedeHacer('editar'), canDel=puedeHacer('eliminar');
+  tbody.innerHTML = rows.length ? rows.map(c=>`<tr data-fecha="${toISODate(c.fecha_venc)||toISODate(c.fecha_emision)}">
+    <td><strong>${c.factura||'—'}</strong></td>
+    <td>${c.suplidor||'—'}</td>
+    <td>${c.concepto||'—'}</td>
+    <td>RD$ ${fmt(c.total)}</td>
+    <td>RD$ ${fmt(c.pagadoTotal)}</td>
+    <td><strong>RD$ ${fmt(c.saldo)}</strong></td>
+    <td>${c.fecha_venc||'—'}</td>
+    <td><span class="badge ${st[c.estado]||'b-gray'}">${c.estado}</span></td>
     <td style="white-space:nowrap">
-      ${c.origen==='manual'&&puedeHacer('editar')?`<button class="btn-icon" onclick="pagarCxp(${i},'manual')"><i class="ti ti-cash"></i></button>`:''}
-      ${c.origen==='manual'&&puedeHacer('eliminar')?`<button class="btn-icon" onclick="deleteCxp(${i})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
+      ${canEdit&&c.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp(${c.id})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
+      <button class="btn-icon" title="Historial de pagos" onclick="verHistorialCxp(${c.id})"><i class="ti ti-history"></i></button>
+      ${canEdit?`<button class="btn-icon" title="Editar factura" onclick="editCxpManual(${c.id})"><i class="ti ti-edit"></i></button>`:''}
+      ${canDel?`<button class="btn-icon" title="Eliminar" style="color:var(--danger)" onclick="deleteCxp(${c.id})"><i class="ti ti-trash"></i></button>`:''}
     </td>
+  </tr>`).join('') : '<tr><td colspan="9" class="empty"><i class="ti ti-file-invoice"></i><p>Sin facturas de suplidores registradas</p></td></tr>';
+
+  renderCxpStats(rows);
+  renderCxpResumenMensual();
+}
+
+function renderCxpStats(rows){
+  const statsEl=document.getElementById('cxpStats');
+  if(!statsEl)return;
+  const hoy=new Date(); const mesActual=hoy.getMonth(), anioActual=hoy.getFullYear();
+  const totalPorPagar=rows.reduce((s,c)=>s+c.saldo,0);
+  const vencidas=rows.filter(c=>c.estado==='Vencida');
+  const porVencer=rows.filter(c=>c.estado==='Por vencer');
+  const totalVencido=vencidas.reduce((s,c)=>s+c.saldo,0);
+  let pagadoEsteMes=0;
+  rows.forEach(c=>(c.pagos||[]).forEach(p=>{
+    const iso=toISODate(p.fecha); if(!iso) return;
+    const [y,m]=iso.split('-'); if(parseInt(y)===anioActual&&parseInt(m)===mesActual+1) pagadoEsteMes+=(p.monto||0);
+  }));
+  statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total por Pagar</div><div class="stat-val">RD$ ${fmt(totalPorPagar)}</div><div class="stat-sub">${rows.filter(c=>c.estado!=='Pagada').length} factura(s) abiertas</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencido</div><div class="stat-val">RD$ ${fmt(totalVencido)}</div><div class="stat-sub">${vencidas.length} factura(s) vencidas</div></div>
+    <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Por Vencer</div><div class="stat-val">${porVencer.length}</div><div class="stat-sub">Próximos 7 días</div></div>
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${MESES_ES[mesActual]}</div><div class="stat-val">RD$ ${fmt(pagadoEsteMes)}</div><div class="stat-sub">Mes actual</div></div>
+  `;
+}
+
+// Dashboard "Debido por Mes": agrupa las facturas por el mes de su fecha de
+// vencimiento del año actual — mismo patrón que "Gastos por Mes".
+function renderCxpResumenMensual(){
+  const tbody=document.getElementById('tbodyCxpResumen');
+  if(!tbody)return;
+  const anio=new Date().getFullYear();
+  const anioEl=document.getElementById('cxpResumenAnio');
+  if(anioEl) anioEl.textContent=anio;
+  const rows=buildCxpRows();
+  const porMes=MESES_ES.map((mes,idx)=>{
+    const items=rows.filter(c=>{
+      const iso=toISODate(c.fecha_venc||c.fecha_emision);
+      if(!iso) return false;
+      const [y,m]=iso.split('-');
+      return parseInt(y)===anio && parseInt(m)===idx+1;
+    });
+    const total=items.reduce((s,c)=>s+c.total,0);
+    const pagado=items.reduce((s,c)=>s+c.pagadoTotal,0);
+    return {mes, cantidad:items.length, total, pagado, saldo:total-pagado};
+  });
+  tbody.innerHTML=porMes.map(m=>`<tr>
+    <td>${m.mes}</td><td>${m.cantidad}</td><td>RD$ ${fmt(m.total)}</td><td>RD$ ${fmt(m.pagado)}</td><td><strong>RD$ ${fmt(m.saldo)}</strong></td>
   </tr>`).join('');
 }
 
+function exportarResumenCxp(){
+  exportTable('tblCxpResumen','Resumen CxP '+new Date().getFullYear());
+}
+
 function newCxpManual(){
-  document.getElementById('mCxpTit').textContent='Nueva CxP';
+  document.getElementById('mCxpTit').textContent='Nueva Factura de Suplidor';
+  document.getElementById('cxpm_id').value='';
   ['cxpm_factura','cxpm_concepto','cxpm_monto','cxpm_itbis','cxpm_total','cxpm_obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('cxpm_pagado').value='false';
+  document.getElementById('cxpm_fecha_emision').value=todayISO();
+  document.getElementById('cxpm_fecha_venc').value='';
   const ssel=document.getElementById('cxpm_suplidor');
-  ssel.innerHTML='<option value="">-- Seleccionar --</option>';
-  (PD().suplidores||[]).forEach(s=>{ssel.innerHTML+=`<option value="${s.nombre}">${s.nombre}</option>`;});
-  bsel=document.getElementById('cxpm_banco');
-  bsel.innerHTML='<option value="">-- Seleccionar --</option>';
-  (PD().bancos||[]).forEach(b=>{bsel.innerHTML+=`<option value="${b.id}">${b.banco} · ${b.cuenta}</option>`;});
+  ssel.innerHTML='<option value="">-- Seleccionar --</option>'+(PD().suplidores||[]).map(s=>`<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  openModal('modalCxpManual');
+}
+
+function editCxpManual(id){
+  if(!puedeHacer('editar')){alert('Sin permisos.');return;}
+  const c=(PD().cxp||[]).find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('mCxpTit').textContent='Editar Factura de Suplidor';
+  document.getElementById('cxpm_id').value=c.id;
+  document.getElementById('cxpm_factura').value=c.factura||'';
+  document.getElementById('cxpm_concepto').value=c.concepto||'';
+  document.getElementById('cxpm_fecha_emision').value=c.fecha_emision||'';
+  document.getElementById('cxpm_fecha_venc').value=c.fecha_venc||'';
+  setMoneyVal('cxpm_monto',c.monto||0);
+  setMoneyVal('cxpm_itbis',c.itbis||0);
+  calcCxpTotal();
+  document.getElementById('cxpm_obs').value=c.obs||'';
+  const ssel=document.getElementById('cxpm_suplidor');
+  ssel.innerHTML='<option value="">-- Seleccionar --</option>'+(PD().suplidores||[]).map(s=>`<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  ssel.value=c.suplidor||'';
   openModal('modalCxpManual');
 }
 
 function calcCxpTotal(){
-  m=getMoneyVal('cxpm_monto');
-  t=getMoneyVal('cxpm_itbis');
+  const m=getMoneyVal('cxpm_monto');
+  const t=getMoneyVal('cxpm_itbis');
   setMoneyVal('cxpm_total',m+t);
 }
 
 function saveCxpManual(){
-  monto=getMoneyVal('cxpm_monto');
+  const monto=getMoneyVal('cxpm_monto');
   if(!monto){alert('Ingrese el monto.');return;}
+  if(!document.getElementById('cxpm_suplidor').value){alert('Seleccione el suplidor.');return;}
   if(!PD().cxp) currentProject.data.cxp=[];
-  pagado=document.getElementById('cxpm_pagado').value==='true';
-  bancoId=document.getElementById('cxpm_banco').value;
-  if(pagado&&bancoId){
-    banco=PD().bancos.find(b=>b.id==bancoId);
-    if(banco) banco.saldo-=(monto+getMoneyVal('cxpm_itbis'));
-  }
-  PD().cxp.push({
+  const id=document.getElementById('cxpm_id').value;
+  const datos={
     factura:document.getElementById('cxpm_factura').value,
     suplidor:document.getElementById('cxpm_suplidor').value,
     concepto:document.getElementById('cxpm_concepto').value,
     monto, itbis:getMoneyVal('cxpm_itbis'),
+    fecha_emision:document.getElementById('cxpm_fecha_emision').value,
     fecha_venc:document.getElementById('cxpm_fecha_venc').value,
-    metodo:document.getElementById('cxpm_metodo').value,
-    banco:bancoId, pagado,
     obs:document.getElementById('cxpm_obs').value
-  });
-  closeModal('modalCxpManual'); renderCxp(); renderBancos();
+  };
+  if(id){
+    const c=PD().cxp.find(x=>String(x.id)===String(id));
+    if(c) Object.assign(c,datos);
+    addLog('Editó factura de suplidor: '+datos.factura+' — '+datos.suplidor);
+  } else {
+    PD().cxp.push({id:Date.now()+Math.floor(Math.random()*1000), pagos:[], ...datos});
+    addLog('Nueva factura de suplidor: '+datos.factura+' — '+datos.suplidor);
+  }
+  closeModal('modalCxpManual'); renderCxp();
 }
 
-function deleteCxp(i){
+function deleteCxp(id){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
-  if(confirm('¿Eliminar esta CxP?')){ PD().cxp.splice(i,1); renderCxp(); }
+  const idx=(PD().cxp||[]).findIndex(x=>x.id===id);
+  if(idx<0)return;
+  if(confirm('¿Eliminar esta factura de suplidor?')){ PD().cxp.splice(idx,1); renderCxp(); }
+}
+
+// ── Registrar pago ──
+function abrirPagoCxp(id){
+  const c=(PD().cxp||[]).find(x=>x.id===id);
+  if(!c){alert('No se encontró la factura.');return;}
+  const saldo=cxpSaldo(c);
+  document.getElementById('pcx_id').value=id;
+  document.getElementById('pcx_suplidor').textContent=c.suplidor||'—';
+  document.getElementById('pcx_factura').textContent=c.factura||'—';
+  document.getElementById('pcx_concepto').textContent=c.concepto||'—';
+  document.getElementById('pcx_saldo').textContent='RD$ '+fmt(saldo);
+  document.getElementById('pcx_fecha').value=todayISO();
+  setMoneyVal('pcx_monto',saldo);
+  document.getElementById('pcx_referencia').value='';
+  document.getElementById('pcx_obs').value='';
+  const bsel=document.getElementById('pcx_banco');
+  const bancos=(PD().bancos||[]);
+  bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
+  if(bancos.length===1) bsel.value=bancos[0].id;
+  openModal('modalPagoCxp');
+}
+
+function savePagoCxp(){
+  const id=document.getElementById('pcx_id').value;
+  const c=(PD().cxp||[]).find(x=>String(x.id)===String(id));
+  if(!c){alert('No se encontró la factura.');return;}
+  const bancoId=document.getElementById('pcx_banco').value;
+  const monto=getMoneyVal('pcx_monto');
+  if(!bancoId){alert('Seleccione una cuenta bancaria origen.');return;}
+  if(!monto){alert('Ingrese el monto a pagar.');return;}
+  const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
+  if(banco) banco.saldo-=monto;
+  if(!c.pagos) c.pagos=[];
+  c.pagos.push({
+    fecha:document.getElementById('pcx_fecha').value,
+    monto,
+    metodo:document.getElementById('pcx_metodo').value,
+    banco:bancoId,
+    referencia:document.getElementById('pcx_referencia').value,
+    obs:document.getElementById('pcx_obs').value
+  });
+  closeModal('modalPagoCxp');
+  renderCxp();
+  if(typeof renderBancos==='function') renderBancos();
+  addLog('Pago a suplidor registrado — '+(c.suplidor||'')+' Factura '+(c.factura||'')+' RD$ '+fmt(monto));
+}
+
+function generarReciboCxp(){
+  const id=document.getElementById('pcx_id').value;
+  const c=(PD().cxp||[]).find(x=>String(x.id)===String(id));
+  if(!c)return;
+  const s=(PD().suplidores||[]).find(x=>x.nombre===c.suplidor);
+  const fecha=document.getElementById('pcx_fecha').value;
+  const monto=getMoneyVal('pcx_monto');
+  const metodo=document.getElementById('pcx_metodo').value;
+  const ref=document.getElementById('pcx_referencia').value;
+  llenarReciboCxp({fecha,suplidor:c.suplidor,doc:s?.rnc,factura:c.factura,concepto:c.concepto,metodo,ref,monto});
+}
+
+function llenarReciboCxp({fecha,suplidor,doc,factura,concepto,metodo,ref,monto}){
+  const projName=currentProject?currentProject.name:'VIP Home';
+  const recNo='VIP-'+String(Date.now()).slice(-6);
+  ['1','2'].forEach(n=>{
+    document.getElementById('recx_logo'+n).src=LOGO_DATA;
+    document.getElementById('recx_no'+n).textContent='No. '+recNo;
+    document.getElementById('recx_proy'+n).textContent=projName;
+    document.getElementById('recx_fecha'+n).textContent=fecha||'—';
+    document.getElementById('recx_suplidor'+n).textContent=suplidor||'—';
+    document.getElementById('recx_doc'+n).textContent=doc||'—';
+    document.getElementById('recx_factura'+n).textContent=factura||'—';
+    document.getElementById('recx_metodo'+n).textContent=metodo||'—';
+    document.getElementById('recx_ref'+n).textContent=ref||'—';
+    document.getElementById('recx_concepto'+n).textContent=concepto||'—';
+    document.getElementById('recx_monto'+n).textContent='RD$ '+fmt(monto);
+  });
+  openModal('modalReciboCxp');
+}
+
+function printReciboCxp(){
+  const content=document.getElementById('reciboContentCxp');
+  if(!content)return;
+  const win=window.open('','_blank','width=850,height=1100');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Comprobante de Pago</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;margin:0;color:#1b2a3b;}
+      #reciboContentCxp{width:19.59cm;margin:0 auto;}
+      .recibo-copia{height:12.9cm;box-sizing:border-box;page-break-inside:avoid;}
+      @media print{@page{margin:1cm;size:letter portrait;}}
+    </style>
+  </head><body>${content.outerHTML}
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ── Historial y reversión ──
+function verHistorialCxp(id){
+  const c=(PD().cxp||[]).find(x=>x.id===id);
+  if(!c)return;
+  document.getElementById('hcx_titulo').textContent='Historial — Factura '+(c.factura||'—')+' · '+(c.suplidor||'—');
+  const pagos=(c.pagos||[]);
+  document.getElementById('hcx_tbody').innerHTML=pagos.length?pagos.map((p,i)=>`
+    <tr>
+      <td>${p.fecha||'—'}</td>
+      <td>RD$ ${fmt(p.monto)}</td>
+      <td>${p.metodo||'—'}</td>
+      <td>${p.referencia||'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-icon" title="Generar recibo" onclick="generarReciboDesdeHistorialCxp(${id},${i})"><i class="ti ti-receipt"></i></button>
+        ${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoCxp(${id},${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty"><i class="ti ti-receipt"></i><p>Sin pagos registrados</p></td></tr>';
+  openModal('modalHistCxp');
+}
+
+function generarReciboDesdeHistorialCxp(id,pagoIdx){
+  const c=(PD().cxp||[]).find(x=>x.id===id);
+  const p=c?.pagos?.[pagoIdx];
+  if(!c||!p)return;
+  const s=(PD().suplidores||[]).find(x=>x.nombre===c.suplidor);
+  llenarReciboCxp({fecha:p.fecha,suplidor:c.suplidor,doc:s?.rnc,factura:c.factura,concepto:c.concepto,metodo:p.metodo,ref:p.referencia,monto:p.monto});
+}
+
+function revertirPagoCxp(id,pagoIdx){
+  if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
+  const c=(PD().cxp||[]).find(x=>x.id===id);
+  if(!c||!c.pagos||!c.pagos[pagoIdx])return;
+  const motivo=prompt('Motivo de la reversión de este pago:');
+  if(motivo===null)return;
+  if(!motivo.trim()){alert('Debe indicar un motivo.');return;}
+  const p=c.pagos[pagoIdx];
+  const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
+  if(banco) banco.saldo+=(p.monto||0);
+  c.pagos.splice(pagoIdx,1);
+  addLog('Revirtió pago a suplidor '+(c.suplidor||'')+' Factura '+(c.factura||'')+' RD$ '+fmt(p.monto)+' — Motivo: '+motivo);
+  closeModal('modalHistCxp');
+  renderCxp();
+  if(typeof renderBancos==='function') renderBancos();
+}
+
+// ── Importar gastos a crédito como factura de CxP ──
+function abrirImportarGastosCxp(){
+  const yaImportados=new Set((PD().cxp||[]).map(c=>c.origen_gasto_id).filter(Boolean));
+  const candidatos=(PD().gastos||[]).filter(g=>g.credito&&!yaImportados.has(g.id));
+  document.getElementById('igc_tbody').innerHTML=candidatos.length?candidatos.map(g=>{
+    const supNombre=(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—';
+    return `<tr>
+      <td>${g.fecha}</td><td>${supNombre}</td><td>${g.descripcion}</td>
+      <td>RD$ ${fmt((g.monto||0)+(g.itbis||0))}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="importarGastoComoCxp(${g.id})">Importar</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty"><i class="ti ti-file-off"></i><p>No hay gastos a crédito pendientes de importar</p></td></tr>';
+  openModal('modalImportarGastoCxp');
+}
+
+function importarGastoComoCxp(gastoId){
+  const g=(PD().gastos||[]).find(x=>x.id===gastoId);
+  if(!g)return;
+  if(!PD().cxp) currentProject.data.cxp=[];
+  const supNombre=(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'';
+  PD().cxp.push({
+    id:Date.now()+Math.floor(Math.random()*1000),
+    factura:g.factura||g.numncf||'',
+    suplidor:supNombre,
+    concepto:g.descripcion||'',
+    fecha_emision:toISODate(g.fecha)||todayISO(),
+    fecha_venc:toISODate(g.fecha)||todayISO(),
+    monto:g.monto||0, itbis:g.itbis||0,
+    obs:g.obs||'',
+    origen_gasto_id:g.id,
+    pagos:[]
+  });
+  addLog('Importó gasto a crédito como CxP: '+g.descripcion);
+  abrirImportarGastosCxp();
+  renderCxp();
 }
 
 // ═══════════════════════════════════════════════════
@@ -6325,6 +6775,16 @@ function totalCobradoAnio(anio){
   return total;
 }
 
+// Total acumulado del año de todo lo que aún no se ha cobrado (mismo criterio que
+// totalCobradoAnio, pero sumando los cargos que no están en estado "Pagada").
+function totalPendienteAnio(anio){
+  let total=0;
+  MESES_ES.forEach(mes=>{
+    cargosMantenimiento(mes,anio).forEach(r=>{ if(r.estado!=='Pagada') total+=r.monto; });
+  });
+  return total;
+}
+
 function renderCxcMant(){
   const tbody=document.getElementById('tbodyCxcMant');
   if(!tbody) return;
@@ -6346,6 +6806,7 @@ function renderCxcMant(){
   const totalCobrado=pagadas.reduce((s,r)=>s+r.monto,0);
   const totalPendiente=pendientes.reduce((s,r)=>s+r.monto,0);
   const totalAnio=totalCobradoAnio(anio);
+  const totalPendienteAnioVal=totalPendienteAnio(anio);
   // Ojo: esto es el atraso real (últimos meses), NO solo el mes seleccionado arriba —
   // así coincide siempre con el badge del menú y con Cuotas Vencidas.
   const totalVencidas=contarVencidasActual();
@@ -6353,8 +6814,9 @@ function renderCxcMant(){
   const statsEl=document.getElementById('cxcMantStats');
   if(statsEl) statsEl.innerHTML=`
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Cobrado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
-    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
-    <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-clock"></i></div><div class="stat-label">Total Pendiente ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendienteAnioVal)}</div><div class="stat-sub">Acumulado del año</div></div>
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${totalVencidas}</div><div class="stat-sub">Atraso real, todos los meses</div></div>
   `;
 
@@ -6501,7 +6963,12 @@ function generarReciboMant(){
 
 // Historial de pagos de un cargo (apto+concepto), con opción de revertir cada uno.
 function verHistorialPagosMant(apt_no,concepto){
-  const cxcIdx=(PD().cxc||[]).findIndex(c=>c.op===apt_no&&(c.concepto===concepto||(!c.concepto&&concepto==='Mantenimiento')));
+  // Mismo criterio flexible que construirCargoMant(): los datos históricos no siempre
+  // traen el texto exacto "Mantenimiento" como concepto.
+  const manual=PD().cxc||[];
+  const cxcIdx = concepto==='Mantenimiento'
+    ? manual.findIndex(c=>c.op===apt_no&&c.concepto!=='Gas')
+    : manual.findIndex(c=>c.op===apt_no&&c.concepto===concepto);
   const c=cxcIdx>=0?PD().cxc[cxcIdx]:null;
   document.getElementById('hp_titulo').textContent='Historial — Apto. '+apt_no+' · '+concepto;
   const pagos=(c?.pagos_mensuales||[]);
@@ -6512,9 +6979,40 @@ function verHistorialPagosMant(apt_no,concepto){
       <td>RD$ ${fmt(p.monto)}</td>
       <td>${p.mora?('RD$ '+fmt(p.mora)):'—'}</td>
       <td>${p.referencia||'—'}</td>
-      <td>${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoMant(${cxcIdx},${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-icon" title="Generar recibo" onclick="generarReciboDesdeHistorial(${cxcIdx},${i})"><i class="ti ti-receipt"></i></button>
+        ${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoMant(${cxcIdx},${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}
+      </td>
     </tr>`).join('') : '<tr><td colspan="6" class="empty"><i class="ti ti-receipt"></i><p>Sin pagos registrados</p></td></tr>';
   openModal('modalHistPagosMant');
+}
+
+// Genera el recibo de un pago ya registrado, directamente desde el historial
+// (no requiere tener abierto el modal de "Registrar pago").
+function generarReciboDesdeHistorial(cxcIdx,pagoIdx){
+  const c=(PD().cxc||[])[cxcIdx];
+  const p=c?.pagos_mensuales?.[pagoIdx];
+  if(!c||!p){alert('No se encontró el pago.');return;}
+  const a=(PD().apartamentos||[]).find(x=>x.no===c.op)||{};
+  const docCliente = c.cliente_doc || (c.concepto==='Gas'&&a.estado==='Alquilado' ? (a.inq_doc||'—') : (a.prop_doc||'—'));
+  const projName=currentProject?currentProject.name:'VIP Home';
+  const recNo='VIP-'+String(Date.now()).slice(-6);
+  const sym=p.moneda||'RD$';
+  const total=(p.total!=null?p.total:(p.monto||0)+(p.mora||0));
+  ['1','2'].forEach(n=>{
+    document.getElementById('rec_logo'+n).src=LOGO_DATA;
+    document.getElementById('rec_no'+n).textContent='No. '+recNo;
+    document.getElementById('rec_proy'+n).textContent=projName;
+    document.getElementById('rec_fecha'+n).textContent=p.fecha||'—';
+    document.getElementById('rec_cliente'+n).textContent=c.cliente||'—';
+    document.getElementById('rec_doc'+n).textContent=docCliente;
+    document.getElementById('rec_unidad'+n).textContent=c.op;
+    document.getElementById('rec_ncuota'+n).textContent=c.concepto+' — '+p.mes+' '+(p.anio||'');
+    document.getElementById('rec_metodo'+n).textContent=p.metodo||'—';
+    document.getElementById('rec_ref'+n).textContent=p.referencia||'—';
+    document.getElementById('rec_monto'+n).textContent=fmtMoney(total,sym);
+  });
+  openModal('modalRecibo');
 }
 
 // Revierte un pago puntual: exige motivo, descuenta el monto de la cuenta bancaria
