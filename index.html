@@ -867,6 +867,12 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     </select>
     <button class="btn btn-primary" onclick="newNomina()"><i class="ti ti-plus"></i> Registrar Pago</button>
   </div>
+  <div class="bar" style="margin-top:.5rem">
+    <span style="font-size:12px;color:var(--muted)">Imprimir por mes:</span>
+    <select class="filter" id="nominaMesImprimir"></select>
+    <select class="filter" id="nominaAnioImprimir"></select>
+    <button class="btn btn-outline" onclick="imprimirNominaPorMes()"><i class="ti ti-printer"></i> Imprimir</button>
+  </div>
   <div class="tbl-wrap">
     <table id="tblNomina">
       <thead><tr><th>Fecha</th><th>Empleado</th><th>Concepto</th><th>Monto</th><th>Banco</th><th>Método</th><th>Acciones</th></tr></thead>
@@ -2237,6 +2243,84 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Suplidor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL RECIBO DE NÓMINA ═══ -->
+<div class="modal-bg" id="modalReciboNomina">
+<div class="modal" style="max-width:700px">
+  <div class="modal-head"><h2><i class="ti ti-receipt"></i> Recibo de Pago de Nómina</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-success btn-sm" onclick="printReciboNomina()"><i class="ti ti-printer"></i> Imprimir</button>
+      <button class="modal-close" onclick="closeModal('modalReciboNomina')">×</button>
+    </div>
+  </div>
+  <div class="modal-body" style="padding:0">
+    <div id="reciboContentNomina" style="font-family:'Segoe UI',sans-serif;color:#1b2a3b;background:#fff;">
+      <!-- COPIA 1 -->
+      <div class="recibo-copia" style="padding:30px 40px;border-bottom:3px dashed #ccc;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="recn_logo1"/>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.08em;">Copia — Empresa</div>
+            <div style="font-size:18px;font-weight:700;color:#1b2a3b;">COMPROBANTE DE PAGO DE NÓMINA</div>
+            <div style="font-size:12px;color:#6ab254;font-weight:500;" id="recn_no1">No. 0001</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;margin-bottom:14px;">
+          <div><span style="color:#8a9bb0;">Proyecto:</span> <strong id="recn_proy1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Fecha:</span> <strong id="recn_fecha1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Empleado:</span> <strong id="recn_empleado1">—</strong></div>
+          <div><span style="color:#8a9bb0;">Método:</span> <strong id="recn_metodo1">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Cuenta / Banco:</span> <strong id="recn_banco1">—</strong></div>
+        </div>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Concepto</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="recn_concepto1">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO PAGADO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="recn_monto1">RD$ 0.00</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Empleado</div>
+        </div>
+      </div>
+      <!-- COPIA 2 -->
+      <div class="recibo-copia" style="padding:30px 40px;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="recn_logo2"/>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.08em;">Copia — Empleado</div>
+            <div style="font-size:18px;font-weight:700;color:#1b2a3b;">COMPROBANTE DE PAGO DE NÓMINA</div>
+            <div style="font-size:12px;color:#6ab254;font-weight:500;" id="recn_no2">No. 0001</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;font-size:13px;margin-bottom:14px;">
+          <div><span style="color:#8a9bb0;">Proyecto:</span> <strong id="recn_proy2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Fecha:</span> <strong id="recn_fecha2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Empleado:</span> <strong id="recn_empleado2">—</strong></div>
+          <div><span style="color:#8a9bb0;">Método:</span> <strong id="recn_metodo2">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Cuenta / Banco:</span> <strong id="recn_banco2">—</strong></div>
+        </div>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Concepto</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="recn_concepto2">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO PAGADO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="recn_monto2">RD$ 0.00</span>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
+          <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Empleado</div>
         </div>
       </div>
     </div>
@@ -3729,7 +3813,7 @@ function renderNomina(){
       <td>${n.banco||'—'}</td>
       <td>${n.tipo||'—'}</td>
       <td style="white-space:nowrap">
-        <button class="btn-icon" onclick="printRecibo(${i})"><i class="ti ti-printer"></i></button>
+        <button class="btn-icon" title="Recibo" onclick="generarReciboNomina(${i})"><i class="ti ti-printer"></i></button>
         <button class="btn-icon" onclick="editNomina(${i})"><i class="ti ti-edit"></i></button>
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('nomina',${i},'tbodyNomina',renderNomina)"><i class="ti ti-trash"></i></button>
       </td>
@@ -3743,6 +3827,7 @@ function renderNomina(){
     if(nombres.includes(actual)) empSel.value=actual;
   }
 
+  initSelectMesAnioNomina();
   renderNominaResumen();
 }
 
@@ -3780,6 +3865,77 @@ function renderNominaResumen(){
 
 function exportarResumenNomina(){
   exportTable('tblNominaResumen','Resumen Nómina '+new Date().getFullYear());
+}
+
+// Llena los selects de Mes/Año de "Imprimir por mes" (una sola vez) — mismo patrón que Gastos.
+function initSelectMesAnioNomina(){
+  const mesSel=document.getElementById('nominaMesImprimir');
+  const anioSel=document.getElementById('nominaAnioImprimir');
+  if(mesSel && mesSel.dataset.init!=='1'){
+    mesSel.innerHTML=MESES_ES.map(m=>`<option>${m}</option>`).join('');
+    mesSel.value=MESES_ES[new Date().getMonth()];
+    mesSel.dataset.init='1';
+  }
+  if(anioSel && anioSel.dataset.init!=='1'){
+    const y=new Date().getFullYear();
+    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+    anioSel.value=y;
+    anioSel.dataset.init='1';
+  }
+}
+
+function imprimirNominaPorMes(){
+  const mesSel=document.getElementById('nominaMesImprimir');
+  const anioSel=document.getElementById('nominaAnioImprimir');
+  const mesIdx=MESES_ES.indexOf(mesSel.value);
+  const anio=parseInt(anioSel.value);
+  const desde=`${anio}-${String(mesIdx+1).padStart(2,'0')}-01`;
+  const ultimoDia=new Date(anio,mesIdx+1,0).getDate();
+  const hasta=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
+  const bar=document.getElementById('tblNomina').closest('.module-view, .page').querySelector('.bar');
+  bar.querySelector('.f-desde').value=desde;
+  bar.querySelector('.f-hasta').value=hasta;
+  marcarPeriodoPersonalizado('tblNomina');
+  printModule(`Nómina — ${mesSel.value} ${anio}`,'tblNomina');
+}
+
+// Recibo individual de un pago de nómina ya registrado (reemplaza el botón que
+// antes llamaba a printRecibo(i), función de CxC que no aplicaba aquí).
+function generarReciboNomina(i){
+  const n=STATE.nomina[i];
+  if(!n)return;
+  const projName=currentProject?currentProject.name:'VIP Home';
+  const recNo='VIP-'+String(Date.now()).slice(-6);
+  ['1','2'].forEach(x=>{
+    document.getElementById('recn_logo'+x).src=LOGO_DATA;
+    document.getElementById('recn_no'+x).textContent='No. '+recNo;
+    document.getElementById('recn_proy'+x).textContent=projName;
+    document.getElementById('recn_fecha'+x).textContent=n.fecha||'—';
+    document.getElementById('recn_empleado'+x).textContent=n.nombre||'—';
+    document.getElementById('recn_metodo'+x).textContent=n.tipo||'—';
+    document.getElementById('recn_banco'+x).textContent=n.banco||'—';
+    document.getElementById('recn_concepto'+x).textContent=n.descripcion||'Pago de nómina';
+    document.getElementById('recn_monto'+x).textContent='RD$ '+fmt(n.monto);
+  });
+  openModal('modalReciboNomina');
+}
+
+function printReciboNomina(){
+  const content=document.getElementById('reciboContentNomina');
+  if(!content)return;
+  const win=window.open('','_blank','width=850,height=1100');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Recibo de Nómina</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;margin:0;color:#1b2a3b;}
+      #reciboContentNomina{width:19.59cm;margin:0 auto;}
+      .recibo-copia{height:12.9cm;box-sizing:border-box;page-break-inside:avoid;}
+      @media print{@page{margin:1cm;size:letter portrait;}}
+    </style>
+  </head><body>${content.outerHTML}
+  <script>setTimeout(()=>window.print(),400);<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
 function newNomina(){
