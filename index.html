@@ -1539,7 +1539,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- Apartamento (mantenimiento): propietario + inquilino, distinto del formulario de construcción -->
 <div class="modal-bg" id="modalApartamentoMant">
-<div class="modal" style="max-width:660px">
+<div class="modal" style="max-width:920px">
   <div class="modal-head"><h2 id="mAptMantTit">Nuevo Apartamento</h2><button class="modal-close" onclick="closeModal('modalApartamentoMant')">×</button></div>
   <div class="modal-body">
     <div class="form-grid">
@@ -1550,24 +1550,36 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       </div>
       <div class="fg"><label>Moneda</label><select id="am_moneda"><option value="RD$">RD$</option><option value="US$">US$</option></select></div>
     </div>
-    <div class="form-section">Propietario</div>
-    <div class="form-grid">
-      <div class="fg"><label>Nombre</label><input id="am_prop_nombre"/></div>
-      <div class="fg"><label>Tipo Documento</label><select id="am_prop_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
-      <div class="fg"><label>No. Documento</label><input id="am_prop_doc"/></div>
-      <div class="fg"><label>Teléfono</label><input id="am_prop_tel" oninput="formatTel(this)"/></div>
-      <div class="fg"><label>WhatsApp</label><input id="am_prop_whatsapp" oninput="formatTel(this)"/></div>
-      <div class="fg"><label>Correo</label><input id="am_prop_email" type="email"/></div>
-      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="am_prop_dir"/></div>
-    </div>
-    <div class="form-section" id="am_inq_title">Inquilino</div>
-    <div class="form-grid" id="am_inq_section">
-      <div class="fg"><label>Nombre</label><input id="am_inq_nombre"/></div>
-      <div class="fg"><label>Tipo Documento</label><select id="am_inq_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
-      <div class="fg"><label>No. Documento</label><input id="am_inq_doc"/></div>
-      <div class="fg"><label>Teléfono</label><input id="am_inq_tel" oninput="formatTel(this)"/></div>
-      <div class="fg"><label>WhatsApp</label><input id="am_inq_whatsapp" oninput="formatTel(this)"/></div>
-      <div class="fg" style="grid-column:1/-1"><label>Dirección</label><input id="am_inq_dir"/></div>
+    <!-- Propietario e inquilino van lado a lado: al marcar "Alquilado" el inquilino
+         aparece de inmediato junto al propietario, sin scroll ni saltos de layout. -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:1rem;">
+      <div>
+        <div class="form-section" style="margin-top:0">Propietario</div>
+        <div style="display:flex;flex-direction:column;gap:.7rem">
+          <div class="fg"><label>Nombre</label><input id="am_prop_nombre"/></div>
+          <div class="fg"><label>Tipo Documento</label><select id="am_prop_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
+          <div class="fg"><label>No. Documento</label><input id="am_prop_doc"/></div>
+          <div class="fg"><label>Teléfono</label><input id="am_prop_tel" oninput="formatTel(this)"/></div>
+          <div class="fg"><label>WhatsApp</label><input id="am_prop_whatsapp" oninput="formatTel(this)"/></div>
+          <div class="fg"><label>Correo</label><input id="am_prop_email" type="email"/></div>
+          <div class="fg"><label>Dirección</label><input id="am_prop_dir"/></div>
+        </div>
+      </div>
+      <div>
+        <div class="form-section" id="am_inq_title" style="margin-top:0">Inquilino</div>
+        <div id="am_inq_section" style="display:flex;flex-direction:column;gap:.7rem">
+          <div class="fg"><label>Nombre</label><input id="am_inq_nombre"/></div>
+          <div class="fg"><label>Tipo Documento</label><select id="am_inq_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
+          <div class="fg"><label>No. Documento</label><input id="am_inq_doc"/></div>
+          <div class="fg"><label>Teléfono</label><input id="am_inq_tel" oninput="formatTel(this)"/></div>
+          <div class="fg"><label>WhatsApp</label><input id="am_inq_whatsapp" oninput="formatTel(this)"/></div>
+          <div class="fg"><label>Dirección</label><input id="am_inq_dir"/></div>
+        </div>
+        <div id="am_inq_placeholder" style="display:none;background:var(--bg);border:1px dashed var(--border);border-radius:10px;padding:20px 16px;text-align:center;color:var(--muted);font-size:12px;">
+          <i class="ti ti-lock" style="font-size:20px;display:block;margin-bottom:6px;"></i>
+          Solo aplica si el Estado es "Alquilado"
+        </div>
+      </div>
     </div>
     <div class="form-section">Montos</div>
     <div class="form-grid">
@@ -5607,8 +5619,8 @@ function renderApartamentosMant(){
 // según el Estado seleccionado (solo aplica si está Alquilado).
 function toggleInquilinoSection(){
   const esAlquilado = document.getElementById('am_estado').value==='Alquilado';
-  document.getElementById('am_inq_title').style.display = esAlquilado?'':'none';
-  document.getElementById('am_inq_section').style.display = esAlquilado?'':'none';
+  document.getElementById('am_inq_section').style.display = esAlquilado?'flex':'none';
+  document.getElementById('am_inq_placeholder').style.display = esAlquilado?'none':'block';
 }
 
 // Agrega una fila editable de "otro monto" (concepto + valor) al modal de apartamento.
