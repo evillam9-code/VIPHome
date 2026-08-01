@@ -348,6 +348,9 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <div class="nav-item" onclick="showPage('suplidores')"><i class="ti ti-building-store"></i> Suplidores</div>
         <div class="nav-item" onclick="showPage('gastos')"><i class="ti ti-receipt"></i> Gastos</div>
         <div class="nav-item" onclick="showPage('cxp')"><i class="ti ti-file-invoice"></i> CxP / Facturas</div>
+        <div class="nav-item" onclick="showPage('cxp_vencidas')"><i class="ti ti-alert-triangle"></i> CxP Vencidas
+          <span id="navCxpVencidasCount" style="display:none;margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:20px;">0</span>
+        </div>
         <div class="nav-section">Operaciones</div>
         <div class="nav-item" onclick="showPage('bancos')"><i class="ti ti-building-bank"></i> Cuentas Bancarias</div>
         <div class="nav-item" onclick="showPage('cajachica')"><i class="ti ti-wallet"></i> Caja Chica</div>
@@ -727,6 +730,28 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   </div>
 </div>
 
+<!-- ── CxP VENCIDAS ── -->
+<div id="page-cxp_vencidas" class="page">
+  <div class="stat-grid" id="cxpVencidasStats"></div>
+  <div class="bar" style="margin-top:1rem">
+    <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblCxpVencidas')"/></div>
+    <select class="filter f-status" onchange="applyTableFilters('tblCxpVencidas')">
+      <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
+    </select>
+    <span class="badge b-red">Vencidas: <strong id="cxpVencidasCount">0</strong></span>
+    <button class="btn btn-outline" onclick="printModule('CxP Vencidas','tblCxpVencidas')"><i class="ti ti-printer"></i> Imprimir</button>
+  </div>
+  <div class="tbl-wrap">
+    <table id="tblCxpVencidas">
+      <thead><tr>
+        <th>Factura</th><th>Suplidor</th><th>Concepto</th><th>Total</th>
+        <th>Saldo</th><th>Vencimiento</th><th>Estado</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyCxpVencidas"></tbody>
+    </table>
+  </div>
+</div>
+
 <!-- ── BANCOS ── -->
 <div id="page-bancos" class="page">
   <div class="bar">
@@ -827,9 +852,13 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── NOMINA ── -->
 <div id="page-nomina" class="page">
-  <div class="bar">
+  <div class="stat-grid" id="nominaStats"></div>
+  <div class="bar" style="margin-top:1rem">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar nómina..." oninput="applyTableFilters('tblNomina')"/>
     <button class="btn btn-outline" onclick="printModule('Nómina','tblNomina')" title="Imprimir / PDF"><i class="ti ti-printer"></i> Imprimir</button></div>
+    <select class="filter f-extra" id="nomFiltroEmpleado" onchange="applyTableFilters('tblNomina')">
+      <option value="">-- Todos los empleados --</option>
+    </select>
     <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Desde"/><span class="filter-date-sep">–</span>
     <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Hasta"/>
     <select class="filter f-periodo" onchange="setPeriodo('tblNomina',this.value)">
@@ -837,13 +866,25 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
     <button class="btn btn-primary" onclick="newNomina()"><i class="ti ti-plus"></i> Registrar Pago</button>
-    <button class="btn btn-outline" id="btnExportNom" onclick="exportTable('tblNomina','Nomina')"><i class="ti ti-download"></i> Exportar</button>
   </div>
   <div class="tbl-wrap">
     <table id="tblNomina">
       <thead><tr><th>Fecha</th><th>Empleado</th><th>Concepto</th><th>Monto</th><th>Banco</th><th>Método</th><th>Acciones</th></tr></thead>
       <tbody id="tbodyNomina"></tbody>
     </table>
+  </div>
+
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Nómina por Mes (<span id="nominaResumenAnio"></span>) — para comparar</span>
+      <button class="btn btn-outline btn-sm" onclick="exportarResumenNomina()"><i class="ti ti-download"></i> Exportar</button>
+    </div>
+    <div class="tbl-wrap">
+      <table id="tblNominaResumen">
+        <thead><tr><th>Mes</th><th>Pagos</th><th>Total</th></tr></thead>
+        <tbody id="tbodyNominaResumen"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1027,6 +1068,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="modal-body">
     <div class="form-grid">
       <div class="fg"><label>Fecha</label><input id="gs_fecha" type="date"/></div>
+      <div class="fg"><label>Fecha de vencimiento</label><input id="gs_fecha_venc" type="date"/></div>
       <div class="fg"><label>Suplidor</label><select id="gs_sup"><option value="">— Seleccione —</option></select></div>
       <div class="fg" style="grid-column:1/-1"><label>Descripción del gasto</label><input id="gs_desc"/></div>
       <div class="fg"><label>Número de Factura</label><input id="gs_factura"/></div>
@@ -2323,6 +2365,7 @@ const MODULOS = [
   ['suplidores','Suplidores'],
   ['gastos','Gastos'],
   ['cxp','CxP / Facturas'],
+  ['cxp_vencidas','CxP Vencidas'],
   ['bancos','Cuentas Bancarias'],
   ['cajachica','Caja Chica'],
   ['caja','Caja'],
@@ -2947,7 +2990,7 @@ document.getElementById('uUser').addEventListener('keydown',e=>{if(e.key==='Ente
 const pageTitles = {
   dashboard:'Dashboard', apartamentos:'Apartamentos', clientes:'Clientes',
   ventas:'Ventas', cxc:'CxC / Cobros', vencidas:'Cuotas Vencidas', suplidores:'Suplidores',
-  gastos:'Gastos', cxp:'CxP / Facturas', facturas:'Facturas',
+  gastos:'Gastos', cxp:'CxP / Facturas', cxp_vencidas:'CxP Vencidas', facturas:'Facturas',
   bancos:'Cuentas Bancarias', cajachica:'Caja Chica', caja:'Caja', empleados:'Empleados', nomina:'Nómina',
   informes:'Informes Mensuales', admin:'Administración'
 };
@@ -2966,7 +3009,7 @@ function showPage(name){
   document.querySelector(`.nav-item[onclick*="showPage('${name}')"]`)?.classList.add('active');
   document.getElementById('pageTitle').textContent=pageTitles[name]||name;
   document.getElementById('pageActions').innerHTML='';
-  const renders={dashboard:renderDashboard,apartamentos:renderApartamentos,clientes:renderClientes,contratos:renderContratos,ventas:renderVentas,cxc:renderCxc,suplidores:renderSuplidores,gastos:renderGastos,cxp:renderCxp,facturas:renderFacturas,bancos:renderBancos,cajachica:()=>renderCaja('cajaChica'),caja:()=>renderCaja('caja'),empleados:renderEmpleados,nomina:renderNomina,informes:renderInformes,admin:()=>{if(typeof renderUsuarios==="function")renderUsuarios();if(typeof renderLog==="function")renderLog();if(typeof loadConfig==="function")loadConfig();}};
+  const renders={dashboard:renderDashboard,apartamentos:renderApartamentos,clientes:renderClientes,contratos:renderContratos,ventas:renderVentas,cxc:renderCxc,suplidores:renderSuplidores,gastos:renderGastos,cxp:renderCxp,cxp_vencidas:renderCxpVencidas,facturas:renderFacturas,bancos:renderBancos,cajachica:()=>renderCaja('cajaChica'),caja:()=>renderCaja('caja'),empleados:renderEmpleados,nomina:renderNomina,informes:renderInformes,admin:()=>{if(typeof renderUsuarios==="function")renderUsuarios();if(typeof renderLog==="function")renderLog();if(typeof loadConfig==="function")loadConfig();}};
   if(renders[name])renders[name]();
 }
 
@@ -3302,6 +3345,7 @@ function exportarResumenGastos(){
 function newGasto(){
   editingGastoIdx = null;
   document.getElementById('gs_fecha').value=todayISO();
+  document.getElementById('gs_fecha_venc').value='';
   document.getElementById('gs_sup').value='';
   document.getElementById('gs_desc').value='';
   document.getElementById('gs_factura').value='';
@@ -3320,6 +3364,7 @@ function editGasto(i){
   editingGastoIdx = i;
   const g=STATE.gastos[i];
   document.getElementById('gs_fecha').value=(g.fecha||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)?g.fecha.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/,'$3-$2-$1'):'';
+  document.getElementById('gs_fecha_venc').value=g.fecha_venc||'';
   document.getElementById('gs_sup').value=g.suplidor_id||'';
   document.getElementById('gs_desc').value=g.descripcion;
   document.getElementById('gs_factura').value=g.factura||'';
@@ -3335,15 +3380,20 @@ function editGasto(i){
 }
 
 function saveGasto(){
+  // Al editar, conserva id y pagos[] ya registrados (savePagoCxp/revertirPagoCxp
+  // los guardan directo en el gasto) — no se deben perder al guardar el formulario.
+  const previo = editingGastoIdx!==null ? STATE.gastos[editingGastoIdx] : null;
   g={
-    id: editingGastoIdx!==null ? STATE.gastos[editingGastoIdx].id : Date.now(),
+    id: previo ? previo.id : Date.now(),
     fecha:fechaES(v('gs_fecha'))||today(),
+    fecha_venc:v('gs_fecha_venc'),
     suplidor_id:v('gs_sup'),
     descripcion:v('gs_desc'),factura:v('gs_factura'),
     ncf:v('gs_ncf')==='1',numncf:v('gs_numncf'),
     monto:parseFloat(v('gs_monto'))||0,itbis:parseFloat(v('gs_itbis'))||0,
     externo:v('gs_ext')==='1',credito:v('gs_cred')==='1',
-    pagado:v('gs_pag')==='1',obs:v('gs_obs')
+    pagado:v('gs_pag')==='1',obs:v('gs_obs'),
+    pagos: previo ? (previo.pagos||[]) : []
   };
   if(editingGastoIdx!==null){
     STATE.gastos[editingGastoIdx]=g;
@@ -3684,6 +3734,52 @@ function renderNomina(){
         <button class="btn-icon" style="color:var(--danger)" onclick="deleteRow('nomina',${i},'tbodyNomina',renderNomina)"><i class="ti ti-trash"></i></button>
       </td>
     </tr>`).join('');
+
+  const empSel=document.getElementById('nomFiltroEmpleado');
+  if(empSel){
+    const actual=empSel.value;
+    const nombres=[...new Set(STATE.nomina.map(n=>n.nombre).filter(Boolean))].sort();
+    empSel.innerHTML='<option value="">-- Todos los empleados --</option>'+nombres.map(n=>`<option value="${n}">${n}</option>`).join('');
+    if(nombres.includes(actual)) empSel.value=actual;
+  }
+
+  renderNominaResumen();
+}
+
+// Dashboard de Nómina: total del año y desglose mes a mes para comparar.
+function renderNominaResumen(){
+  const tbody=document.getElementById('tbodyNominaResumen');
+  if(!tbody) return;
+  const anio=new Date().getFullYear();
+  const anioEl=document.getElementById('nominaResumenAnio');
+  if(anioEl) anioEl.textContent=anio;
+  const porMes=MESES_ES.map((mes,idx)=>{
+    const items=STATE.nomina.filter(n=>{
+      const iso=toISODate(n.fecha);
+      if(!iso) return false;
+      const [y,m]=iso.split('-');
+      return parseInt(y)===anio && parseInt(m)===idx+1;
+    });
+    const total=items.reduce((s,n)=>s+(n.monto||0),0);
+    return {mes, cantidad:items.length, total};
+  });
+  const totalAnio=porMes.reduce((s,m)=>s+m.total,0);
+  const mesActual=MESES_ES[new Date().getMonth()];
+  const totalMesActual=porMes.find(m=>m.mes===mesActual)?.total||0;
+
+  const statsEl=document.getElementById('nominaStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Nómina ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${mesActual}</div><div class="stat-val">RD$ ${fmt(totalMesActual)}</div><div class="stat-sub">Mes actual</div></div>
+  `;
+
+  tbody.innerHTML=porMes.map(m=>`<tr>
+    <td>${m.mes}</td><td>${m.cantidad}</td><td>RD$ ${fmt(m.total)}</td>
+  </tr>`).join('');
+}
+
+function exportarResumenNomina(){
+  exportTable('tblNominaResumen','Resumen Nómina '+new Date().getFullYear());
 }
 
 function newNomina(){
@@ -4795,7 +4891,7 @@ function buildCxpRows(){
     return {
       id:g.id, key:'gasto:'+g.id,
       factura:g.factura||g.numncf||'', suplidor:supNombre, concepto:g.descripcion||'',
-      fecha_emision:fecha, fecha_venc:fecha,
+      fecha_emision:fecha, fecha_venc:g.fecha_venc||fecha,
       monto:g.monto||0, itbis:g.itbis||0, pagos:g.pagos||[], pagado:g.pagado
     };
   });
@@ -4886,6 +4982,65 @@ function renderCxpResumenMensual(){
 
 function exportarResumenCxp(){
   exportTable('tblCxpResumen','Resumen CxP '+new Date().getFullYear());
+}
+
+// ── CxP Vencidas: mismo patrón que Cuotas Vencidas de CxC — vencidas y por
+// vencer con colores, dashboard, y recordatorio manual por WhatsApp al suplidor.
+function buildVencidasCxpRows(){
+  return buildCxpRows().filter(r=>r.estado==='Vencida'||r.estado==='Por vencer');
+}
+
+function contarVencidasCxpActual(){
+  return buildVencidasCxpRows().filter(r=>r.estado==='Vencida').length;
+}
+
+function renderCxpVencidas(){
+  const tbody=document.getElementById('tbodyCxpVencidas');
+  if(!tbody) return;
+  const rows=buildVencidasCxpRows().sort((a,b)=>{
+    if(a.estado!==b.estado) return a.estado==='Vencida'?-1:1;
+    return (a.fecha_venc||'').localeCompare(b.fecha_venc||'');
+  });
+  const vencidas=rows.filter(r=>r.estado==='Vencida');
+  const porVencer=rows.filter(r=>r.estado==='Por vencer');
+
+  const countEl=document.getElementById('cxpVencidasCount');
+  if(countEl) countEl.textContent=vencidas.length;
+  const navBadge=document.getElementById('navCxpVencidasCount');
+  if(navBadge){ navBadge.textContent=vencidas.length; navBadge.style.display=vencidas.length?'':'none'; }
+
+  const statsEl=document.getElementById('cxpVencidasStats');
+  if(statsEl){
+    const totalVencido=vencidas.reduce((s,r)=>s+r.saldo,0);
+    const totalPorVencer=porVencer.reduce((s,r)=>s+r.saldo,0);
+    statsEl.innerHTML=`
+      <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">RD$ ${fmt(totalVencido)}</div></div>
+      <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Por vencer</div><div class="stat-val">${porVencer.length}</div><div class="stat-sub">RD$ ${fmt(totalPorVencer)}</div></div>
+    `;
+  }
+
+  if(!rows.length){
+    tbody.innerHTML='<tr><td colspan="8" class="empty"><i class="ti ti-circle-check"></i><p>Sin facturas ni gastos vencidos o por vencer</p></td></tr>';
+    return;
+  }
+  const canEdit=puedeHacer('editar');
+  const st={Vencida:'b-red','Por vencer':'b-yellow'};
+  tbody.innerHTML=rows.map(r=>{
+    const supNombre=r.suplidor||(PD().suplidores||[]).find(s=>String(s.id)===String(r.suplidor_id))?.nombre||'—';
+    const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
+    const pagarBtn = canEdit?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${r.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'';
+    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${sup.tel}','${supNombre.replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
+    return `<tr>
+      <td><strong>${r.factura||'—'}</strong></td>
+      <td>${supNombre}</td>
+      <td>${r.concepto||'—'}</td>
+      <td>RD$ ${fmt(r.total)}</td>
+      <td style="color:var(--danger)"><strong>RD$ ${fmt(r.saldo)}</strong></td>
+      <td><small>${r.fecha_venc||'—'}</small></td>
+      <td><span class="badge ${st[r.estado]}">${r.estado}</span></td>
+      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
+    </tr>`;
+  }).join('');
 }
 
 function newCxpManual(){
