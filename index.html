@@ -1385,7 +1385,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="modal-body" style="padding:0">
     <div id="reciboContent" style="font-family:'Segoe UI',sans-serif;color:#1b2a3b;background:#fff;">
       <!-- COPIA 1 -->
-      <div class="recibo-copia" style="padding:28px 36px;border-bottom:2px dashed #ccc;">
+      <div class="recibo-copia" style="padding:30px 40px;border-bottom:3px dashed #ccc;display:flex;flex-direction:column;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
           <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="rec_logo1"/>
           <div style="text-align:right;">
@@ -1400,21 +1400,25 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
           <div><span style="color:#8a9bb0;">Cliente:</span> <strong id="rec_cliente1">—</strong></div>
           <div><span style="color:#8a9bb0;">Cédula/Doc:</span> <strong id="rec_doc1">—</strong></div>
           <div><span style="color:#8a9bb0;">Unidad:</span> <strong id="rec_unidad1">—</strong></div>
-          <div><span style="color:#8a9bb0;">No. Cuota:</span> <strong id="rec_ncuota1">—</strong></div>
           <div><span style="color:#8a9bb0;">Método:</span> <strong id="rec_metodo1">—</strong></div>
-          <div><span style="color:#8a9bb0;">Referencia:</span> <strong id="rec_ref1">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Referencia:</span> <strong id="rec_ref1">—</strong></div>
         </div>
-        <div style="background:#f5f7f5;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:14px;color:#8a9bb0;">MONTO RECIBIDO</span>
-          <span style="font-size:22px;font-weight:700;color:#1b2a3b;" id="rec_monto1">$0.00</span>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Tipo de Pago</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="rec_ncuota1">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO RECIBIDO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="rec_monto1">$0.00</span>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:24px;">
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Cliente</div>
         </div>
       </div>
       <!-- COPIA 2 -->
-      <div class="recibo-copia" style="padding:28px 36px;">
+      <div class="recibo-copia" style="padding:30px 40px;display:flex;flex-direction:column;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
           <img src="LOGO_PLACEHOLDER" style="height:48px;width:auto;" id="rec_logo2"/>
           <div style="text-align:right;">
@@ -1429,15 +1433,19 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
           <div><span style="color:#8a9bb0;">Cliente:</span> <strong id="rec_cliente2">—</strong></div>
           <div><span style="color:#8a9bb0;">Cédula/Doc:</span> <strong id="rec_doc2">—</strong></div>
           <div><span style="color:#8a9bb0;">Unidad:</span> <strong id="rec_unidad2">—</strong></div>
-          <div><span style="color:#8a9bb0;">No. Cuota:</span> <strong id="rec_ncuota2">—</strong></div>
           <div><span style="color:#8a9bb0;">Método:</span> <strong id="rec_metodo2">—</strong></div>
-          <div><span style="color:#8a9bb0;">Referencia:</span> <strong id="rec_ref2">—</strong></div>
+          <div style="grid-column:1/-1"><span style="color:#8a9bb0;">Referencia:</span> <strong id="rec_ref2">—</strong></div>
         </div>
-        <div style="background:#f5f7f5;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:14px;color:#8a9bb0;">MONTO RECIBIDO</span>
-          <span style="font-size:22px;font-weight:700;color:#1b2a3b;" id="rec_monto2">$0.00</span>
+        <div style="background:#f5f7f5;border-radius:8px;padding:14px 18px;">
+          <div style="font-size:11px;color:#8a9bb0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">Tipo de Pago</div>
+          <div style="font-size:20px;font-weight:700;color:#185fa5;margin-bottom:12px;" id="rec_ncuota2">—</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #d8dde2;padding-top:10px;">
+            <span style="font-size:13px;color:#8a9bb0;">MONTO RECIBIDO</span>
+            <span style="font-size:24px;font-weight:700;color:#1b2a3b;" id="rec_monto2">$0.00</span>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:24px;">
+        <div style="flex:1"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Representante Empresa</div>
           <div style="text-align:center;border-top:1px solid #1b2a3b;padding-top:8px;font-size:12px;color:#8a9bb0;">Firma Cliente</div>
         </div>
@@ -3825,11 +3833,14 @@ function printRecibo(){
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
     <title>Recibo de Pago</title>
     <style>
+      /* Hoja carta (8.5x11") con margen de 1cm: área imprimible 19.59 x 25.94cm.
+         Cada copia ocupa la mitad exacta de esa altura (~12.9cm), centrada. */
       body{font-family:'Segoe UI',sans-serif;margin:0;color:#1b2a3b;}
-      .recibo-copia{page-break-inside:avoid;}
+      #reciboContent{width:19.59cm;margin:0 auto;}
+      .recibo-copia{height:12.9cm;box-sizing:border-box;page-break-inside:avoid;}
       @media print{@page{margin:1cm;size:letter portrait;}}
     </style>
-  </head><body>${content.innerHTML}
+  </head><body>${content.outerHTML}
   <script>setTimeout(()=>window.print(),400);<\/script>
   </body></html>`);
   win.document.close();
