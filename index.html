@@ -707,7 +707,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="bar" style="margin-top:1rem">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar gasto..." oninput="applyTableFilters('tblGasto')"/></div>
     <select class="filter f-status" onchange="applyTableFilters('tblGasto')">
-      <option value="">Todos</option><option value="pagado">Pagados</option><option value="pendiente">Pendientes</option>
+      <option value="">Todos</option><option value="pagada">Pagados</option><option value="vencida">Vencidos</option><option value="por vencer">Por vencer</option><option value="pendiente">Pendientes</option>
     </select>
     <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblGasto')" title="Desde"/><span class="filter-date-sep">–</span>
     <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblGasto')" title="Hasta"/>
@@ -3707,6 +3707,7 @@ function populateSupSelect(){
 
 function renderGastos(){
   populateSupSelect();
+  const stG={Pagada:'b-green',Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue'};
   const _t_tbodyGasto=document.getElementById('tbodyGasto'); if(!_t_tbodyGasto)return; _t_tbodyGasto.innerHTML=STATE.gastos.map((g,i)=>`
     <tr data-fecha="${toISODate(g.fecha)}">
       <td><input type="checkbox" class="gasto-check" data-idx="${i}"/></td>
@@ -3718,7 +3719,7 @@ function renderGastos(){
       <td>RD$ ${fmt(g.itbis)}</td>
       <td><strong>RD$ ${fmt(g.monto+g.itbis)}</strong></td>
       <td>${g.externo?'<span class="badge b-yellow">Externo</span>':'<span class="badge b-gray">Interno</span>'}</td>
-      <td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span>${g.credito?' <span class="badge b-red">Crédito</span>':''}</td>
+      <td><span class="badge ${stG[estadoCxp(g)]||'b-gray'}">${estadoCxp(g)}</span>${g.credito?' <span class="badge b-red">Crédito</span>':''}</td>
       <td style="white-space:nowrap">
         ${cxpSaldo(g)>0.009&&puedeHacer('editar')?`<button class="btn-icon" title="Pagar / Abonar" onclick="abrirPagoCxp('gasto:${g.id}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
         ${(g.pagos||[]).length?`<button class="btn-icon" title="Historial de pagos" onclick="verHistorialCxp('gasto:${g.id}')"><i class="ti ti-history"></i></button>`:''}
