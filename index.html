@@ -1059,38 +1059,6 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 <!-- ═══════════ MODALS ═══════════ -->
 
 <!-- Cliente -->
-<div class="modal-bg" id="modalCliente">
-  <div class="modal"><div class="modal-head"><h2 id="mClienteTit">Nuevo Cliente</h2><button class="modal-close" onclick="closeModal('modalCliente')">×</button></div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="fg"><label>Referencia</label><input id="mc_ref" placeholder="A-1"/></div>
-      <div class="fg"><label>Fecha de registro</label><input id="mc_fecha_reg" type="date"/></div>
-      <div class="fg"><label>Tipo Documento</label><select id="mc_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
-      <div class="fg"><label>No. Documento</label><input id="mc_cedula"/></div>
-      <div class="fg"><label>Nombres</label><input id="mc_nombres"/></div>
-      <div class="fg"><label>Apellidos</label><input id="mc_apellidos"/></div>
-      <div class="fg"><label>Teléfono / Celular</label><input id="mc_telefono"/></div>
-      <div class="fg"><label>Email</label><input id="mc_email" type="email"/></div>
-      <div class="fg"><label>Ocupación</label><input id="mc_ocup"/></div>
-      <div class="fg"><label>Unidad / Apartamento</label><input id="mc_unidad"/></div>
-      <div class="fg"><label>Precio de Venta US$</label><input id="mc_precio" type="number"/></div>
-      <div class="fg"><label>Pago Inicial US$</label><input id="mc_inicial" type="number"/></div>
-    </div>
-    <div class="form-section">Segundo Titular (opcional)</div>
-    <div class="form-grid">
-      <div class="fg"><label>Nombres</label><input id="mc_n2"/></div>
-      <div class="fg"><label>Apellidos</label><input id="mc_a2"/></div>
-      <div class="fg"><label>Teléfono</label><input id="mc_t2"/></div>
-    </div>
-    <div class="form-section">Dirección y Observaciones</div>
-    <div class="form-grid full">
-      <div class="fg"><label>Dirección</label><input id="mc_dir"/></div>
-      <div class="fg"><label>Observaciones</label><textarea id="mc_obs"></textarea></div>
-    </div>
-  </div>
-  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalCliente')">Cancelar</button><button class="btn btn-primary" onclick="saveCliente()"><i class="ti ti-check"></i> Guardar</button></div></div>
-</div>
-
 <!-- CxC / Financiamiento -->
 <div class="modal-bg" id="modalCxc">
   <div class="modal"><div class="modal-head"><h2>Nuevo Financiamiento</h2><button class="modal-close" onclick="closeModal('modalCxc')">×</button></div>
@@ -1123,7 +1091,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <div class="form-grid">
       <div class="fg" style="grid-column:1/-1"><label>Nombre / Razón Social</label><input id="sup_nombre"/></div>
       <div class="fg"><label>Fecha de registro</label><input id="sup_fecha_reg" type="date"/></div>
-      <div class="fg"><label>RNC</label><input id="sup_rnc"/></div>
+      <div class="fg"><label>RNC</label><input id="sup_rnc" placeholder="000-00000-0" oninput="this.value=validateDoc('RNC',this.value)"/></div>
       <div class="fg"><label>Tipo</label><select id="sup_tipo"><option>Proveedor materiales</option><option>Contratista</option><option>Servicios</option><option>Mantenimiento</option><option>Otro</option></select></div>
       <div class="fg"><label>Teléfono</label><input id="sup_tel" placeholder="000-000-0000" oninput="formatTel(this)"/></div>
       <div class="fg"><label>Email</label><input id="sup_email" type="email"/></div>
@@ -1450,7 +1418,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <div class="fg"><label>Tipo Documento</label>
           <select id="mc_tipdoc2"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select>
         </div>
-        <div class="fg"><label>No. Documento</label><input id="mc_doc2" placeholder="000-0000000-0"/></div>
+        <div class="fg"><label>No. Documento</label><input id="mc_doc2" placeholder="000-0000000-0" oninput="checkDocInputId('mc_doc2','mc_tipdoc2')"/></div>
         <div class="fg"><label>Nombres</label><input id="mc_nombre2" placeholder="Nombres completos"/></div>
         <div class="fg"><label>Apellidos</label><input id="mc_apellidos2" placeholder="Apellidos completos"/></div>
         <div class="fg"><label>Estado Civil</label>
