@@ -875,7 +875,12 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── CAJA ── -->
 <div id="page-caja" class="page">
+  <p style="font-size:12px;color:var(--muted);margin:0 0 .75rem">Caja consolida automáticamente los cobros y pagos reales de todos los módulos (no gastos ni cobros sueltos) — el saldo debe coincidir con la suma de las cuentas bancarias de abajo.</p>
   <div class="stat-grid" id="cajaStats"></div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">Cuentas Bancarias</div>
+    <div id="cajaBancosResumen"></div>
+  </div>
   <div class="bar" style="margin-top:1rem">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar movimiento..." oninput="applyTableFilters('tblCaja')"/></div>
     <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCaja')" title="Desde"/><span class="filter-date-sep">–</span>
@@ -884,7 +889,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
       <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
-    <button class="btn btn-primary" onclick="newMovCaja('caja')"><i class="ti ti-plus"></i> Nuevo Movimiento</button>
+    <button class="btn btn-primary" onclick="newMovCaja('caja')"><i class="ti ti-plus"></i> Nuevo Ajuste de Cuadre</button>
     <button class="btn btn-outline" onclick="abrirCuadreCaja('caja')"><i class="ti ti-scale"></i> Cuadrar</button>
     <button class="btn btn-outline" onclick="exportTable('tblCaja','Caja')"><i class="ti ti-download"></i> Exportar</button>
   </div>
@@ -1059,38 +1064,6 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 <!-- ═══════════ MODALS ═══════════ -->
 
 <!-- Cliente -->
-<div class="modal-bg" id="modalCliente">
-  <div class="modal"><div class="modal-head"><h2 id="mClienteTit">Nuevo Cliente</h2><button class="modal-close" onclick="closeModal('modalCliente')">×</button></div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="fg"><label>Referencia</label><input id="mc_ref" placeholder="A-1"/></div>
-      <div class="fg"><label>Fecha de registro</label><input id="mc_fecha_reg" type="date"/></div>
-      <div class="fg"><label>Tipo Documento</label><select id="mc_tipdoc"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select></div>
-      <div class="fg"><label>No. Documento</label><input id="mc_cedula"/></div>
-      <div class="fg"><label>Nombres</label><input id="mc_nombres"/></div>
-      <div class="fg"><label>Apellidos</label><input id="mc_apellidos"/></div>
-      <div class="fg"><label>Teléfono / Celular</label><input id="mc_telefono"/></div>
-      <div class="fg"><label>Email</label><input id="mc_email" type="email"/></div>
-      <div class="fg"><label>Ocupación</label><input id="mc_ocup"/></div>
-      <div class="fg"><label>Unidad / Apartamento</label><input id="mc_unidad"/></div>
-      <div class="fg"><label>Precio de Venta US$</label><input id="mc_precio" type="number"/></div>
-      <div class="fg"><label>Pago Inicial US$</label><input id="mc_inicial" type="number"/></div>
-    </div>
-    <div class="form-section">Segundo Titular (opcional)</div>
-    <div class="form-grid">
-      <div class="fg"><label>Nombres</label><input id="mc_n2"/></div>
-      <div class="fg"><label>Apellidos</label><input id="mc_a2"/></div>
-      <div class="fg"><label>Teléfono</label><input id="mc_t2"/></div>
-    </div>
-    <div class="form-section">Dirección y Observaciones</div>
-    <div class="form-grid full">
-      <div class="fg"><label>Dirección</label><input id="mc_dir"/></div>
-      <div class="fg"><label>Observaciones</label><textarea id="mc_obs"></textarea></div>
-    </div>
-  </div>
-  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalCliente')">Cancelar</button><button class="btn btn-primary" onclick="saveCliente()"><i class="ti ti-check"></i> Guardar</button></div></div>
-</div>
-
 <!-- CxC / Financiamiento -->
 <div class="modal-bg" id="modalCxc">
   <div class="modal"><div class="modal-head"><h2>Nuevo Financiamiento</h2><button class="modal-close" onclick="closeModal('modalCxc')">×</button></div>
@@ -1123,7 +1096,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <div class="form-grid">
       <div class="fg" style="grid-column:1/-1"><label>Nombre / Razón Social</label><input id="sup_nombre"/></div>
       <div class="fg"><label>Fecha de registro</label><input id="sup_fecha_reg" type="date"/></div>
-      <div class="fg"><label>RNC</label><input id="sup_rnc"/></div>
+      <div class="fg"><label>RNC</label><input id="sup_rnc" placeholder="000-00000-0" oninput="this.value=validateDoc('RNC',this.value)"/></div>
       <div class="fg"><label>Tipo</label><select id="sup_tipo"><option>Proveedor materiales</option><option>Contratista</option><option>Servicios</option><option>Mantenimiento</option><option>Otro</option></select></div>
       <div class="fg"><label>Teléfono</label><input id="sup_tel" placeholder="000-000-0000" oninput="formatTel(this)"/></div>
       <div class="fg"><label>Email</label><input id="sup_email" type="email"/></div>
@@ -1164,7 +1137,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg"><label>Año</label><select id="im_anio"></select></div>
     </div>
   </div>
-  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalInformeMensual')">Cancelar</button><button class="btn btn-primary" onclick="generarInformeMensual()"><i class="ti ti-printer"></i> Generar e Imprimir</button></div></div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalInformeMensual')">Cancelar</button><button class="btn btn-primary" onclick="generarInformeMensual()"><i class="ti ti-file-type-doc"></i> Generar y Descargar (Word)</button></div></div>
 </div>
 
 <!-- Gasto -->
@@ -1450,7 +1423,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         <div class="fg"><label>Tipo Documento</label>
           <select id="mc_tipdoc2"><option>CEDULA</option><option>PASAPORTE</option><option>RNC</option></select>
         </div>
-        <div class="fg"><label>No. Documento</label><input id="mc_doc2" placeholder="000-0000000-0"/></div>
+        <div class="fg"><label>No. Documento</label><input id="mc_doc2" placeholder="000-0000000-0" oninput="checkDocInputId('mc_doc2','mc_tipdoc2')"/></div>
         <div class="fg"><label>Nombres</label><input id="mc_nombre2" placeholder="Nombres completos"/></div>
         <div class="fg"><label>Apellidos</label><input id="mc_apellidos2" placeholder="Apellidos completos"/></div>
         <div class="fg"><label>Estado Civil</label>
@@ -3511,9 +3484,13 @@ function generarInformeMensual(){
   const filaGasto=g=>`<tr><td>${g.fecha}</td><td>${(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—'}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`;
   const filaNomina=n=>`<tr><td>${n.fecha}</td><td>${n.nombre}</td><td>${n.descripcion||'—'}</td><td>RD$ ${fmt(n.monto)}</td></tr>`;
 
-  const win=window.open('','_blank','width=1000,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+  // Se exporta como .doc (HTML con namespaces de Word) en vez de abrir una
+  // ventana emergente — así se descarga directo, sin depender del bloqueador
+  // de pop-ups del navegador, y el usuario recibe un archivo real de Word.
+  const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+  <head><meta charset="UTF-8">
     <title>Informe Mensual — ${mes} ${anio} — ${proj}</title>
+    <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
     <style>
       body{font-family:'Segoe UI',sans-serif;margin:30px;color:#1b2a3b;font-size:12px;}
       .portada{text-align:center;border-bottom:3px solid #6ab254;padding-bottom:18px;margin-bottom:18px;}
@@ -3536,7 +3513,6 @@ function generarInformeMensual(){
       .badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
       .b-green{background:#e6f7ea;color:#1a7d3a;} .b-yellow{background:#fdf3e2;color:#a06a08;} .b-red{background:#fbe1e1;color:#b91c1c;} .b-blue{background:#e6f1fb;color:#185fa5;} .b-gray{background:#eef1f4;color:#5b6b7c;}
       .footer{margin-top:24px;font-size:10px;color:#b0bcc8;text-align:center;border-top:1px solid #e8ecf0;padding-top:8px;}
-      @media print{@page{margin:1.5cm;}button{display:none!important;}}
     </style>
   </head><body>
   <div class="portada">
@@ -3547,7 +3523,6 @@ function generarInformeMensual(){
     <div class="sub">INFORME MENSUAL — ${mes.toUpperCase()} ${anio}</div>
   </div>
   <div class="meta"><span>Generado por: <strong>${usuario}</strong></span><span>Fecha de generación: ${fechaGen}</span></div>
-  <button onclick="window.print()" style="display:block;margin:0 auto 14px;background:#6ab254;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
 
   <h2 class="sec">Resumen del Sistema</h2>
   <div class="resumen">
@@ -3585,9 +3560,17 @@ function generarInformeMensual(){
   <tbody>${nominaMes.length?nominaMes.map(filaNomina).join(''):'<tr><td colspan="4">Sin pagos de nómina este mes.</td></tr>'}</tbody></table>
 
   <div class="footer">© ${new Date().getFullYear()} VIP Home Inmobiliaria SRL — ${proj} — Informe generado por ${usuario} el ${fechaGen}</div>
-  <script>setTimeout(()=>window.print(),800);<\/script>
-  </body></html>`);
-  win.document.close();
+  </body></html>`;
+
+  const blob=new Blob(['﻿',html],{type:'application/msword'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`Informe Mensual - ${mes} ${anio} - ${proj}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function viewCliente(i){
@@ -4098,6 +4081,26 @@ function renderCaja(tipo){
     <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-arrow-down"></i></div><div class="stat-label">Total Entradas</div><div class="stat-val" style="color:var(--green-dark)">RD$ ${fmt(totalEntradas)}</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-arrow-up"></i></div><div class="stat-label">Total Salidas</div><div class="stat-val" style="color:var(--danger)">RD$ ${fmt(totalSalidas)}</div></div>
   `;
+
+  // Solo Caja (no Caja Chica) muestra las cuentas bancarias reales, para que se
+  // pueda comparar de un vistazo el saldo de Caja contra lo que dice el banco.
+  const bancosResumenEl=document.getElementById('cajaBancosResumen');
+  if(tipo==='caja'&&bancosResumenEl){
+    const bancos=PD().bancos||[];
+    const totalBancos=bancos.reduce((s,b)=>s+(b.saldo||0),0);
+    const diferencia=saldo-totalBancos;
+    bancosResumenEl.innerHTML = bancos.length ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        ${bancos.map(b=>`<div class="rc" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;color:var(--muted)">${b.banco} · ${b.cuenta}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--navy)">${b.moneda} ${fmt(b.saldo)}</div>
+        </div>`).join('')}
+      </div>
+      <p style="font-size:12px;margin-top:10px;color:${Math.abs(diferencia)<0.01?'var(--green-dark)':'var(--danger)'}">
+        ${Math.abs(diferencia)<0.01?'✅ Caja cuadra exacto con las cuentas bancarias.':'⚠️ Diferencia entre Caja y bancos: RD$ '+fmt(diferencia)}
+      </p>` : '<p style="color:var(--muted);font-size:13px">No hay cuentas bancarias registradas todavía.</p>';
+  }
+
   const canEdit=puedeHacer('editar'), canDel=puedeHacer('eliminar');
   let acum=0;
   const conAcum=movs.map(m=>{ acum+=(m.tipo==='Entrada'?m.monto:-m.monto); return {...m, saldoAcum:acum}; });
@@ -8258,6 +8261,10 @@ function buildVencidasRowsMant(){
       rows.push({
         ref:r.apt_no, cliente:r.cliente, clienteDoc:r.clienteDoc, concepto:r.concepto+' — '+mes+' '+anio,
         monto:r.monto, saldo:r.monto, proximoVenc:mes+' '+anio, estado,
+        // proximoVenc de mantenimiento es texto ("Marzo 2026"), no una fecha real,
+        // así que toISODate() no puede leerlo — vencISO es la fecha real para
+        // filtrar por mes y para el atributo data-fecha de la tabla.
+        vencISO:`${anio}-${String(d.getMonth()+1).padStart(2,'0')}-01`,
         diasAtraso:0, diasParaVencer:0, cxc_idx:r.cxc_idx, telWA:r.clienteWA, esMant:true, sym:'RD$',
         apt_no:r.apt_no, concepto_base:r.concepto, mes, anio
       });
@@ -8298,7 +8305,7 @@ function renderVencidas(){
   if(navBadge){ navBadge.textContent=totalVencidasGlobal; navBadge.style.display=totalVencidasGlobal?'':'none'; }
 
   const mesVal=document.getElementById('vencidasMes')?.value||'';
-  const rows = mesVal ? allRows.filter(r=>(toISODate(r.proximoVenc)||'').slice(5,7)===mesVal) : allRows;
+  const rows = mesVal ? allRows.filter(r=>(r.vencISO||toISODate(r.proximoVenc)||'').slice(5,7)===mesVal) : allRows;
   const vencidas=rows.filter(r=>r.estado==='Vencida');
   const porVencer=rows.filter(r=>r.estado==='Por vencer');
 
@@ -8327,7 +8334,7 @@ function renderVencidas(){
       ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
       : `<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarCuotaWA(${r.cxc_idx})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
     const mailBtn = (r.esMant||r.cxc_idx<0) ? '' : `<button class="btn-icon" title="Enviar por correo" onclick="enviarCuotaEmail(${r.cxc_idx})"><i class="ti ti-mail"></i></button>`;
-    return `<tr data-fecha="${toISODate(r.proximoVenc)}">
+    return `<tr data-fecha="${r.vencISO||toISODate(r.proximoVenc)}">
       <td><strong>${r.ref||'—'}</strong></td>
       <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
       <td>${r.concepto||'—'}</td>
