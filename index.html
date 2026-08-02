@@ -429,7 +429,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
             <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
           </select>
           <select class="filter" id="dashMantAnio" onchange="renderDashboardMant()"></select>
-          <button class="btn btn-outline" onclick="abrirInformeMensual()"><i class="ti ti-printer"></i> Informe Mensual</button>
+          <button class="btn btn-outline" onclick="showPage('informes')"><i class="ti ti-file-type-doc"></i> Informe Mensual</button>
         </div>
         <div class="stat-grid" id="dashMantStats"></div>
         <div class="card dm-panel" style="margin-top:1rem">
@@ -968,13 +968,18 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── INFORMES ── -->
 <div id="page-informes" class="page">
+  <p style="font-size:12px;color:var(--muted);margin:0 0 .75rem">Informe general con resumen y detalle de cobros, gastos y nómina — elige un mes puntual o todo el año.</p>
   <div class="bar">
-    <select class="filter" id="infTipo"><option value="cxc">CxC — Financiamientos</option><option value="cxp">Gastos / CxP</option><option value="nomina">Nómina</option><option value="flujo">Flujo de Caja</option></select>
-    <select class="filter" id="infMes"><option value="">Todos los meses</option></select>
-    <button class="btn btn-primary" onclick="genInforme()"><i class="ti ti-chart-bar"></i> Generar</button>
-    <button class="btn btn-outline" onclick="exportInforme()"><i class="ti ti-download"></i> Exportar PDF</button>
+    <select class="filter" id="infMes">
+      <option value="">Todo el año</option>
+      <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+      <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+      <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+      <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+    </select>
+    <select class="filter" id="infAnio"></select>
+    <button class="btn btn-primary" onclick="exportarInformeGeneral()"><i class="ti ti-file-type-doc"></i> Generar Informe (Word)</button>
   </div>
-  <div id="informeContent" class="card" style="margin-top:1rem"></div>
 </div>
 
 <!-- ── ADMINISTRACIÓN ── -->
@@ -1121,23 +1126,6 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     </div>
   </div>
   <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalEnviarMensaje')">Cancelar</button><button class="btn btn-primary" id="em_btn_confirmar" onclick="confirmarEnvioMensaje()"><i class="ti ti-send"></i> Enviar</button></div></div>
-</div>
-
-<!-- Informe Mensual: solo pide mes/año, el reporte se arma e imprime aparte -->
-<div class="modal-bg" id="modalInformeMensual">
-  <div class="modal" style="max-width:380px"><div class="modal-head"><h2>Informe Mensual</h2><button class="modal-close" onclick="closeModal('modalInformeMensual')">×</button></div>
-  <div class="modal-body">
-    <div class="form-grid">
-      <div class="fg"><label>Mes</label><select id="im_mes">
-        <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
-        <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
-        <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
-        <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
-      </select></div>
-      <div class="fg"><label>Año</label><select id="im_anio"></select></div>
-    </div>
-  </div>
-  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalInformeMensual')">Cancelar</button><button class="btn btn-primary" onclick="generarInformeMensual()"><i class="ti ti-file-type-doc"></i> Generar y Descargar (Word)</button></div></div>
 </div>
 
 <!-- Gasto -->
@@ -3414,43 +3402,35 @@ function renderDashboardMant(){
 // porque el informe es siempre de UN mes.
 // Abre el modal simple (solo mes/año) que dispara el Informe Mensual —
 // desacoplado del filtro del dashboard para que sea obvio e independiente.
-function abrirInformeMensual(){
-  const mesSel=document.getElementById('im_mes');
-  const anioSel=document.getElementById('im_anio');
-  mesSel.value=MESES_ES[new Date().getMonth()];
-  const y=new Date().getFullYear();
-  anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
-  anioSel.value=y;
-  openModal('modalInformeMensual');
-}
+// Informe general (Mantenimiento): un solo botón en la página Informes, con
+// mes puntual o "Todo el año" (mes==='' ), que descarga un .doc real — sin
+// ventana emergente ni pasos de por medio.
+function exportarInformeGeneral(){
+  const mes=document.getElementById('infMes').value; // '' = todo el año
+  const anio=parseInt(document.getElementById('infAnio').value);
 
-function generarInformeMensual(){
-  const mes=document.getElementById('im_mes').value;
-  const anio=parseInt(document.getElementById('im_anio').value);
-  closeModal('modalInformeMensual');
+  const cargos = mes ? cargosMantenimiento(mes,anio) : MESES_ES.flatMap(m=>cargosMantenimiento(m,anio));
+  const ingresos = mes ? cargos.filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.monto,0) : totalCobradoAnio(anio);
+  const pendCobro = mes ? cargos.filter(r=>r.estado!=='Pagada').reduce((s,r)=>s+r.monto,0) : totalPendienteAnio(anio);
 
-  const cargos=cargosMantenimiento(mes,anio);
-  const pagadas=cargos.filter(r=>r.estado==='Pagada');
-  const pendientes=cargos.filter(r=>r.estado!=='Pagada');
-  const ingresos=pagadas.reduce((s,r)=>s+r.monto,0);
-  const pendCobro=pendientes.reduce((s,r)=>s+r.monto,0);
-
-  const gastosMes=(PD().gastos||[]).filter(g=>{
+  const gastosPeriodo=(PD().gastos||[]).filter(g=>{
     const iso=toISODate(g.fecha); if(!iso) return false;
-    const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
+    const [y,m]=iso.split('-'); if(parseInt(y)!==anio) return false;
+    return mes ? MESES_ES[parseInt(m)-1]===mes : true;
   });
-  const egresosGastos=gastosMes.filter(g=>g.pagado).reduce((s,g)=>s+g.monto+g.itbis,0);
+  const egresosGastos=gastosPeriodo.filter(g=>g.pagado).reduce((s,g)=>s+g.monto+g.itbis,0);
 
-  const nominaMes=(PD().nomina||[]).filter(n=>{
+  const nominaPeriodo=(PD().nomina||[]).filter(n=>{
     const iso=toISODate(n.fecha); if(!iso) return false;
-    const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
+    const [y,m]=iso.split('-'); if(parseInt(y)!==anio) return false;
+    return mes ? MESES_ES[parseInt(m)-1]===mes : true;
   });
-  const egresosNomina=nominaMes.reduce((s,n)=>s+(n.monto||0),0);
+  const egresosNomina=nominaPeriodo.reduce((s,n)=>s+(n.monto||0),0);
   const egresos=egresosGastos+egresosNomina;
   const balance=ingresos-egresos;
 
   const eom=[31,(anio%4===0&&(anio%100!==0||anio%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
-  const mesIdx=MESES_ES.indexOf(mes);
+  const mesIdx=mes?MESES_ES.indexOf(mes):11;
   const corte=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(eom[mesIdx]).padStart(2,'0')}`;
   let cobradoTotal=0;
   (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{ if((p.fecha||'')<=corte) cobradoTotal+=(p.total||p.monto||0); }));
@@ -3459,7 +3439,9 @@ function generarInformeMensual(){
   const fondoTotal=cobradoTotal-gastadoTotal;
 
   const mm=String(mesIdx+1).padStart(2,'0');
-  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida').filter(r=>(r.fecha_venc||'').slice(0,4)===String(anio)&&(r.fecha_venc||'').slice(5,7)===mm);
+  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida').filter(r=>{
+    const fv=r.fecha_venc||''; return fv.slice(0,4)===String(anio) && (!mes||fv.slice(5,7)===mm);
+  });
   const totalVencidoCxp=vencidasCxp.reduce((s,r)=>s+r.saldo,0);
   const vencidasCxc=cargos.filter(r=>r.estado==='Vencida');
 
@@ -3468,9 +3450,10 @@ function generarInformeMensual(){
   const usuario=(USUARIOS.find(u=>u.user===currentUser)?.nombre)||currentUser||'admin';
   const fechaGen=new Date().toLocaleDateString('es-DO',{day:'2-digit',month:'long',year:'numeric'});
   const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
+  const periodoLbl = mes ? `${mes} ${anio}` : `Año ${anio}`;
 
-  // Resumen del Sistema: foto general del proyecto (no solo el mes), para dar
-  // contexto de tamaño y salud general junto al resumen financiero del mes.
+  // Resumen del Sistema: foto general del proyecto (no solo el período), para
+  // dar contexto de tamaño y salud general junto al resumen financiero.
   const apts=PD().apartamentos||[];
   const habitados=apts.filter(a=>a.estado==='Habitado').length;
   const saldoBancario=(PD().bancos||[]).reduce((s,b)=>s+(b.saldo||0),0);
@@ -3484,12 +3467,11 @@ function generarInformeMensual(){
   const filaGasto=g=>`<tr><td>${g.fecha}</td><td>${(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—'}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`;
   const filaNomina=n=>`<tr><td>${n.fecha}</td><td>${n.nombre}</td><td>${n.descripcion||'—'}</td><td>RD$ ${fmt(n.monto)}</td></tr>`;
 
-  // Se exporta como .doc (HTML con namespaces de Word) en vez de abrir una
-  // ventana emergente — así se descarga directo, sin depender del bloqueador
-  // de pop-ups del navegador, y el usuario recibe un archivo real de Word.
+  // Se exporta como .doc (HTML con namespaces de Word) — se descarga directo,
+  // sin ventana emergente ni bloqueador de pop-ups de por medio.
   const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
   <head><meta charset="UTF-8">
-    <title>Informe Mensual — ${mes} ${anio} — ${proj}</title>
+    <title>Informe — ${periodoLbl} — ${proj}</title>
     <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
     <style>
       body{font-family:'Segoe UI',sans-serif;margin:30px;color:#1b2a3b;font-size:12px;}
@@ -3520,7 +3502,7 @@ function generarInformeMensual(){
     <h1>VIP Home Inmobiliaria SRL</h1>
     <p>RNC: ${cfg.rnc||'—'} · Calle Penetración 1 esq. c/11, Urb. Thomén · Santiago, RD</p>
     <p>${proj}${cfg.direccion?' — '+cfg.direccion:''}</p>
-    <div class="sub">INFORME MENSUAL — ${mes.toUpperCase()} ${anio}</div>
+    <div class="sub">${mes?'INFORME MENSUAL':'INFORME ANUAL'} — ${periodoLbl.toUpperCase()}</div>
   </div>
   <div class="meta"><span>Generado por: <strong>${usuario}</strong></span><span>Fecha de generación: ${fechaGen}</span></div>
 
@@ -3531,33 +3513,33 @@ function generarInformeMensual(){
     <div class="rc"><div class="rc-lbl">Saldo en Caja</div><div class="rc-val">RD$ ${fmt(saldoCaja)}</div></div>
     <div class="rc"><div class="rc-lbl">Suplidores registrados</div><div class="rc-val">${totalSuplidores}</div></div>
     <div class="rc"><div class="rc-lbl">Empleados activos</div><div class="rc-val">${totalEmpleados}</div></div>
-    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${mes})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
+    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${periodoLbl})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
   </div>
 
-  <h2 class="sec">Resumen General del Mes</h2>
+  <h2 class="sec">Resumen General — ${periodoLbl}</h2>
   <div class="resumen">
-    <div class="rc"><div class="rc-lbl">Ingresos del mes</div><div class="rc-val" style="color:#1a7d3a">RD$ ${fmt(ingresos)}</div></div>
-    <div class="rc"><div class="rc-lbl">Egresos del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(egresos)}</div></div>
-    <div class="rc"><div class="rc-lbl">Balance del mes</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
-    <div class="rc"><div class="rc-lbl">Cuotas Vencidas del mes</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
-    <div class="rc"><div class="rc-lbl">CxP Vencido del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(totalVencidoCxp)}</div></div>
+    <div class="rc"><div class="rc-lbl">Ingresos</div><div class="rc-val" style="color:#1a7d3a">RD$ ${fmt(ingresos)}</div></div>
+    <div class="rc"><div class="rc-lbl">Egresos</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(egresos)}</div></div>
+    <div class="rc"><div class="rc-lbl">Balance</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
+    <div class="rc"><div class="rc-lbl">Cuotas Vencidas</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
+    <div class="rc"><div class="rc-lbl">CxP Vencido</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(totalVencidoCxp)}</div></div>
     <div class="rc"><div class="rc-lbl">Pendiente por cobrar</div><div class="rc-val">RD$ ${fmt(pendCobro)}</div></div>
   </div>
   <div class="beneficio ${huboBeneficio?'beneficio-si':'beneficio-no'}">
-    ${huboBeneficio?'✅ SÍ hubo beneficio este mes':'⚠️ NO hubo beneficio este mes'} — Balance: RD$ ${fmt(balance)} (Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)})
+    ${huboBeneficio?'✅ SÍ hubo beneficio en este período':'⚠️ NO hubo beneficio en este período'} — Balance: RD$ ${fmt(balance)} (Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)})
   </div>
 
   <h2 class="sec">Detalle de Cobros (${cargos.length})</h2>
   <table><thead><tr><th>Unidad</th><th>Cliente</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr></thead>
-  <tbody>${cargos.length?cargos.map(filaCargo).join(''):'<tr><td colspan="5">Sin cargos configurados este mes.</td></tr>'}</tbody></table>
+  <tbody>${cargos.length?cargos.map(filaCargo).join(''):'<tr><td colspan="5">Sin cargos configurados en este período.</td></tr>'}</tbody></table>
 
-  <h2 class="sec">Detalle de Gastos (${gastosMes.length})</h2>
+  <h2 class="sec">Detalle de Gastos (${gastosPeriodo.length})</h2>
   <table><thead><tr><th>Fecha</th><th>Suplidor</th><th>Descripción</th><th>Total</th><th>Estado</th></tr></thead>
-  <tbody>${gastosMes.length?gastosMes.map(filaGasto).join(''):'<tr><td colspan="5">Sin gastos registrados este mes.</td></tr>'}</tbody></table>
+  <tbody>${gastosPeriodo.length?gastosPeriodo.map(filaGasto).join(''):'<tr><td colspan="5">Sin gastos registrados en este período.</td></tr>'}</tbody></table>
 
-  <h2 class="sec">Detalle de Nómina (${nominaMes.length})</h2>
+  <h2 class="sec">Detalle de Nómina (${nominaPeriodo.length})</h2>
   <table><thead><tr><th>Fecha</th><th>Beneficiario</th><th>Descripción</th><th>Monto</th></tr></thead>
-  <tbody>${nominaMes.length?nominaMes.map(filaNomina).join(''):'<tr><td colspan="4">Sin pagos de nómina este mes.</td></tr>'}</tbody></table>
+  <tbody>${nominaPeriodo.length?nominaPeriodo.map(filaNomina).join(''):'<tr><td colspan="4">Sin pagos de nómina en este período.</td></tr>'}</tbody></table>
 
   <div class="footer">© ${new Date().getFullYear()} VIP Home Inmobiliaria SRL — ${proj} — Informe generado por ${usuario} el ${fechaGen}</div>
   </body></html>`;
@@ -3566,7 +3548,7 @@ function generarInformeMensual(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;
-  a.download=`Informe Mensual - ${mes} ${anio} - ${proj}.doc`;
+  a.download=`Informe ${mes?'Mensual':'Anual'} - ${periodoLbl} - ${proj}.doc`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -4499,66 +4481,18 @@ function saveNomina(){
 }
 
 function renderInformes(){
-  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  sel=document.getElementById('infMes');
-  if(sel.options.length===1)meses.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m+' 2026';sel.appendChild(o);});
-  genInforme();
-}
-
-function genInforme(){
-  tipo=document.getElementById('infTipo').value;
-  c=document.getElementById('informeContent');
-
-  if(tipo==='cxc'){
-    const tot=STATE.financiamientos.reduce((s,f)=>s+f.monto,0);
-    const ent=STATE.financiamientos.filter(f=>f.situacion==='ENTREGADO');
-    c.innerHTML=`
-      <div class="stat-grid" style="margin-bottom:1rem">
-        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-check"></i></div><div class="stat-label">Entregados</div><div class="stat-val">${ent.length}</div></div>
-        <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-x"></i></div><div class="stat-label">Rechazados</div><div class="stat-val">${STATE.financiamientos.filter(f=>f.situacion==='RECHAZADO').length}</div></div>
-        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-currency-dollar"></i></div><div class="stat-label">Monto total USD$</div><div class="stat-val">$${fmt(tot)}</div></div>
-      </div>
-      <div class="card"><div class="card-title">Financiamientos entregados</div><div class="tbl-wrap"><table>
-        <thead><tr><th>Operación</th><th>Cliente</th><th>Monto</th><th>Cuota</th><th>Períodos</th></tr></thead>
-        <tbody>${ent.map(f=>{const cli=STATE.clientes.find(c=>c.cedula===f.cliente);return`<tr><td>${f.operacion}</td><td>${cli?cli.nombres+' '+cli.apellidos:f.cliente}</td><td>$${fmt(f.monto)}</td><td>$${fmt(f.cuota)}</td><td>${f.periodo}</td></tr>`;}).join('')}</tbody>
-      </table></div></div>`;
-  } else if(tipo==='cxp'){
-    tot=STATE.gastos.reduce((s,g)=>s+g.monto+g.itbis,0);
-    c.innerHTML=`
-      <div class="stat-grid" style="margin-bottom:1rem">
-        <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Total gastos RD$</div><div class="stat-val">RD$ ${fmt(tot)}</div></div>
-        <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Pendientes</div><div class="stat-val">${STATE.gastos.filter(g=>!g.pagado).length}</div></div>
-        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-check"></i></div><div class="stat-label">Pagados</div><div class="stat-val">${STATE.gastos.filter(g=>g.pagado).length}</div></div>
-      </div>
-      <div class="card"><div class="card-title">Detalle de gastos</div><div class="tbl-wrap"><table>
-        <thead><tr><th>Fecha</th><th>Descripción</th><th>Monto</th><th>ITBIS</th><th>Total</th><th>Estado</th></tr></thead>
-        <tbody>${STATE.gastos.slice(0,20).map(g=>`<tr><td>${g.fecha}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto)}</td><td>RD$ ${fmt(g.itbis)}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`).join('')}</tbody>
-      </table></div></div>`;
-  } else if(tipo==='nomina'){
-    tot=STATE.nomina.reduce((s,n)=>s+n.monto,0);
-    c.innerHTML=`
-      <div class="stat-grid" style="margin-bottom:1rem">
-        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-cash"></i></div><div class="stat-label">Total nómina RD$</div><div class="stat-val">RD$ ${fmt(tot)}</div></div>
-        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-users"></i></div><div class="stat-label">Pagos registrados</div><div class="stat-val">${STATE.nomina.length}</div></div>
-      </div>
-      <div class="card"><div class="card-title">Detalle de nómina</div><div class="tbl-wrap"><table>
-        <thead><tr><th>Beneficiario</th><th>Descripción</th><th>Fecha</th><th>Monto RD$</th></tr></thead>
-        <tbody>${STATE.nomina.map(n=>`<tr><td>${n.nombre}</td><td>${n.descripcion||'—'}</td><td>${n.fecha}</td><td><strong>RD$ ${fmt(n.monto)}</strong></td></tr>`).join('')}</tbody>
-      </table></div></div>`;
-  } else {
-    const ing=STATE.financiamientos.filter(f=>f.situacion==='ENTREGADO').reduce((s,f)=>s+f.monto,0);
-    const eg=STATE.gastos.reduce((s,g)=>s+g.monto,0)+STATE.nomina.reduce((s,n)=>s+n.monto,0);
-    c.innerHTML=`
-      <div class="stat-grid" style="margin-bottom:1rem">
-        <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-trending-up"></i></div><div class="stat-label">Ingresos CxC</div><div class="stat-val">$${fmt(ing)}</div></div>
-        <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-trending-down"></i></div><div class="stat-label">Egresos total</div><div class="stat-val">RD$ ${fmt(eg)}</div></div>
-        <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-building-bank"></i></div><div class="stat-label">Saldo bancario RD$</div><div class="stat-val">RD$ ${fmt(STATE.bancos.filter(b=>b.moneda==='RD$').reduce((s,b)=>s+b.saldo,0))}</div></div>
-      </div>`;
+  const anioSel=document.getElementById('infAnio');
+  if(anioSel && anioSel.dataset.init!=='1'){
+    const y=new Date().getFullYear();
+    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+    anioSel.value=y;
+    anioSel.dataset.init='1';
   }
-}
-
-function exportInforme(){
-  alert('En la versión Firebase, este botón generará un PDF con el logo del proyecto y los datos del informe para descarga.');
+  const mesSel=document.getElementById('infMes');
+  if(mesSel && mesSel.dataset.init!=='1'){
+    mesSel.value=MESES_ES[new Date().getMonth()];
+    mesSel.dataset.init='1';
+  }
 }
 
 function renderAdmin(){
