@@ -3248,7 +3248,7 @@ function renderSuplidores(){
 
 function viewSuplidor(i){
   s=STATE.suplidores[i];
-  const gastos=STATE.gastos.filter((g,gi)=>gi<10);
+  const gastos=STATE.gastos.filter(g=>String(g.suplidor_id)===String(s.id));
   document.getElementById('detailTitle').textContent=s.nombre;
   document.getElementById('detailBody').innerHTML=`
     <div class="detail-grid">
@@ -3260,7 +3260,7 @@ function viewSuplidor(i){
     </div>
     <div class="form-section">Gastos asociados</div>
     <div class="tbl-wrap"><table><thead><tr><th>Descripción</th><th>Fecha</th><th>Monto RD$</th><th>Estado</th></tr></thead><tbody>
-    ${STATE.gastos.slice(0,8).map(g=>`<tr><td>${g.descripcion}</td><td>${g.fecha}</td><td>RD$ ${fmt(g.monto)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`).join('')}
+    ${gastos.length?gastos.map(g=>`<tr><td>${g.descripcion}</td><td>${g.fecha}</td><td>RD$ ${fmt(g.monto)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Sin gastos asociados a este suplidor</td></tr>'}
     </tbody></table></div>`;
   openModal('modalDetail');
 }
