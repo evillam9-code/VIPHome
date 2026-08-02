@@ -5381,6 +5381,51 @@ function resolverCxp(key){
   return {origen:'manual', ref:(PD().cxp||[]).find(x=>x.id===id)};
 }
 
+// Arma los datos de una fila de CxP (factura manual o gasto) para enviarla al
+// suplidor por WhatsApp o correo — unifica los nombres de campo distintos entre
+// ambos orígenes (concepto/descripcion, factura/numncf, suplidor/suplidor_id).
+function datosFacturaParaEnvio(key){
+  const {origen,ref:c}=resolverCxp(key);
+  if(!c) return null;
+  const supNombre = origen==='manual' ? (c.suplidor||'') : ((PD().suplidores||[]).find(s=>String(s.id)===String(c.suplidor_id))?.nombre||'');
+  const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
+  return {
+    sup, supNombre,
+    factura: c.factura||c.numncf||'—',
+    concepto: c.concepto||c.descripcion||'—',
+    total: cxpTotal(c),
+    saldo: cxpSaldo(c),
+    venc: c.fecha_venc||toISODate(c.fecha)||'—'
+  };
+}
+
+function enviarFacturaWA(key){
+  const d=datosFacturaParaEnvio(key);
+  if(!d){alert('No se encontró el registro.');return;}
+  if(!d.sup||!d.sup.tel){alert('Este suplidor no tiene teléfono registrado. Agréguelo en el módulo Suplidores.');return;}
+  const proj=currentProject?currentProject.name:'VIP Home';
+  const msg=`Estimado(a) ${d.supNombre}, le enviamos el detalle de su factura de *${proj}*:\n\n`+
+    `Factura: ${d.factura}\nConcepto: ${d.concepto}\nTotal: RD$ ${fmt(d.total)}\nSaldo pendiente: RD$ ${fmt(d.saldo)}\nVencimiento: ${d.venc}\n\n`+
+    `Cualquier duda, quedamos atentos. Gracias.`;
+  const clean=d.sup.tel.replace(/\D/g,'');
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// Correo real no se puede enviar desde una página HTML sin servidor — mailto:
+// abre el cliente de correo del usuario con el asunto y cuerpo ya redactados,
+// para que él mismo lo revise y presione enviar.
+function enviarFacturaEmail(key){
+  const d=datosFacturaParaEnvio(key);
+  if(!d){alert('No se encontró el registro.');return;}
+  if(!d.sup||!d.sup.email){alert('Este suplidor no tiene correo registrado. Agréguelo en el módulo Suplidores.');return;}
+  const proj=currentProject?currentProject.name:'VIP Home';
+  const asunto=`Factura ${d.factura} — ${proj}`;
+  const cuerpo=`Estimado(a) ${d.supNombre},\n\nLe enviamos el detalle de su factura:\n\n`+
+    `Proyecto: ${proj}\nFactura: ${d.factura}\nConcepto: ${d.concepto}\nTotal: RD$ ${fmt(d.total)}\nSaldo pendiente: RD$ ${fmt(d.saldo)}\nVencimiento: ${d.venc}\n\n`+
+    `Cualquier duda, quedamos atentos.\n\nSaludos.`;
+  window.location.href=`mailto:${d.sup.email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+}
+
 // Tras registrar o revertir un pago formal, sincroniza el checkbox "Pagado"
 // con la realidad de los pagos acumulados (así Gastos y CxP siempre coinciden).
 function sincronizarPagadoCxp(ref){ ref.pagado = cxpSaldoBruto(ref)<=0.009; }
@@ -5435,6 +5480,8 @@ function renderCxp(){
     <td style="white-space:nowrap">
       ${canEdit&&c.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${c.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
       <button class="btn-icon" title="Historial de pagos" onclick="verHistorialCxp('${c.key}')"><i class="ti ti-history"></i></button>
+      <button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarFacturaWA('${c.key}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>
+      <button class="btn-icon" title="Enviar por correo" onclick="enviarFacturaEmail('${c.key}')"><i class="ti ti-mail"></i></button>
       ${canEdit&&c.key.startsWith('manual:')?`<button class="btn-icon" title="Editar factura" onclick="editCxpManual('${c.key}')"><i class="ti ti-edit"></i></button>`:''}
       ${canDel&&c.key.startsWith('manual:')?`<button class="btn-icon" title="Eliminar" style="color:var(--danger)" onclick="deleteCxp('${c.key}')"><i class="ti ti-trash"></i></button>`:''}
     </td>
@@ -5548,7 +5595,8 @@ function renderCxpVencidas(){
     const supNombre=r.suplidor||(PD().suplidores||[]).find(s=>String(s.id)===String(r.suplidor_id))?.nombre||'—';
     const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
     const pagarBtn = canEdit?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${r.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'';
-    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${sup.tel}','${supNombre.replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
+    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarFacturaWA('${r.key}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
+    const mailBtn = sup&&sup.email?`<button class="btn-icon" title="Enviar por correo" onclick="enviarFacturaEmail('${r.key}')"><i class="ti ti-mail"></i></button>`:'';
     return `<tr data-fecha="${toISODate(r.fecha_venc)}">
       <td><strong>${r.factura||'—'}</strong></td>
       <td>${supNombre}</td>
@@ -5557,7 +5605,7 @@ function renderCxpVencidas(){
       <td style="color:var(--danger)"><strong>RD$ ${fmt(r.saldo)}</strong></td>
       <td><small>${r.fecha_venc||'—'}</small></td>
       <td><span class="badge ${st[r.estado]}">${r.estado}</span></td>
-      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
+      <td style="white-space:nowrap">${pagarBtn}${waBtn}${mailBtn}</td>
     </tr>`;
   }).join('');
   applyTableFilters('tblCxpVencidas');
