@@ -239,6 +239,35 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 .ie-box{border:1.5px dashed var(--border);border-radius:10px;padding:1.25rem;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;}
 .ie-box:hover{border-color:var(--green);background:#f5fbf3;}
 .ie-box i{font-size:28px;color:var(--light);margin-bottom:.5rem;display:block;} .ie-box p{font-size:13px;color:var(--muted);} .ie-box span{font-size:11px;color:var(--light);}
+
+/* ── Dashboard de Mantenimiento: tarjetas y paneles con acento de color y fondo con degradé, más elegantes que el stat-card genérico ── */
+.dm-card{border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(155deg,#ffffff 0%,#f6faf8 100%);box-shadow:0 1px 3px rgba(16,24,40,.06);}
+.dm-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;}
+.dm-green::before{background:var(--green);} .dm-red::before{background:var(--danger);} .dm-blue::before{background:#185fa5;} .dm-amber::before{background:#c78a12;}
+.dm-panel{border-radius:16px;background:linear-gradient(160deg,#ffffff 0%,#f8fbfa 100%);box-shadow:0 1px 3px rgba(16,24,40,.06);}
+.dm-progress{display:flex;height:14px;border-radius:8px;overflow:hidden;background:var(--light);margin:.25rem 0 1.1rem;}
+.dm-progress-seg{transition:width .4s ease;}
+.dm-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.dm-pill{border-radius:12px;padding:16px 10px;text-align:center;}
+.dm-pill-green{background:linear-gradient(160deg,#eaf7ee,#dcf1e2);} .dm-pill-amber{background:linear-gradient(160deg,#fdf3e2,#fbe9c9);} .dm-pill-red{background:linear-gradient(160deg,var(--danger-l),#fbdada);}
+.dm-pill-num{font-size:25px;font-weight:800;line-height:1.1;}
+.dm-pill-green .dm-pill-num{color:var(--green-dark);} .dm-pill-amber .dm-pill-num{color:#a06a08;} .dm-pill-red .dm-pill-num{color:var(--danger);}
+.dm-pill-lbl{font-size:12px;color:var(--navy);font-weight:600;margin-top:3px;} .dm-pill-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.dm-legend{display:flex;gap:18px;margin-bottom:.25rem;font-size:12px;color:var(--muted);font-weight:500;}
+.dm-legend-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle;}
+.dm-chart{display:flex;align-items:flex-end;gap:22px;height:190px;margin-top:1.4rem;overflow-x:auto;padding:0 4px 6px;}
+.dm-chart-month{display:flex;flex-direction:column;align-items:center;min-width:58px;}
+.dm-chart-bars{display:flex;align-items:flex-end;gap:5px;height:150px;}
+.dm-chart-bar{width:20px;border-radius:5px 5px 0 0;position:relative;min-height:3px;}
+.dm-chart-bar-val{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;white-space:nowrap;}
+.dm-chart-lbl{font-size:11.5px;color:var(--navy);margin-top:8px;font-weight:600;}
+.dm-units{display:flex;flex-wrap:wrap;gap:8px;}
+.dm-unit-chip{min-width:54px;padding:8px 6px;border-radius:9px;text-align:center;font-size:11.5px;font-weight:700;}
+.dm-unit-pagada{background:var(--green-light);color:var(--green-dark);} .dm-unit-pendiente{background:#fdf3e2;color:#a06a08;} .dm-unit-vencida{background:var(--danger-l);color:var(--danger);}
+.dm-cat-row{margin-bottom:14px;} .dm-cat-row:last-child{margin-bottom:0;}
+.dm-cat-head{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:5px;}
+.dm-cat-bar{height:9px;border-radius:6px;background:var(--light);overflow:hidden;display:flex;}
+.dm-cat-bar-seg{height:100%;}
 .at-panel{} .at-panel[style*="none"]{display:none;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease both;}
@@ -402,19 +431,24 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
           <select class="filter" id="dashMantAnio" onchange="renderDashboardMant()"></select>
         </div>
         <div class="stat-grid" id="dashMantStats"></div>
-        <div class="dash-grid" style="margin-top:1rem">
-          <div class="card">
-            <div class="card-title">Ingresos vs. Egresos — últimos 6 meses</div>
-            <div class="bar-chart" id="dashMantChart"></div>
-          </div>
-          <div class="card">
-            <div class="card-title">Estado de cobros del período <span id="dashMantCuotasCount" style="font-size:11px;background:var(--light);color:var(--muted);padding:2px 7px;border-radius:20px;font-weight:500;">0</span></div>
-            <div id="dashMantCuotasList"></div>
-          </div>
+        <div class="card dm-panel" style="margin-top:1rem">
+          <div class="card-title">Estado de Cobros del Período <span id="dashMantCuotasCount" style="font-size:11px;background:var(--light);color:var(--muted);padding:2px 7px;border-radius:20px;font-weight:500;">0</span></div>
+          <div id="dashMantCuotasResumen"></div>
         </div>
-        <div class="card" style="margin-top:1rem">
-          <div class="card-title">Actividad reciente</div>
-          <div id="dashMantActList"></div>
+        <div class="card dm-panel" style="margin-top:1rem">
+          <div class="card-title" id="dashMantChartTitle">Ingresos vs. Egresos del Año</div>
+          <div class="dm-legend"><span><span class="dm-legend-dot" style="background:var(--green)"></span>Ingresos</span><span><span class="dm-legend-dot" style="background:var(--danger)"></span>Egresos</span></div>
+          <div class="dm-chart" id="dashMantChart"></div>
+        </div>
+        <div class="dash-grid" style="margin-top:1rem">
+          <div class="card dm-panel">
+            <div class="card-title">Cobros por Unidad</div>
+            <div id="dashMantUnidades"></div>
+          </div>
+          <div class="card dm-panel">
+            <div class="card-title">Gastos por Categoría</div>
+            <div id="dashMantGastosCat"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -3202,6 +3236,19 @@ function renderDashboardMant(){
   const mes=mesSel?mesSel.value:'';
   const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
   const anioLbl=anio;
+  const hoy=new Date();
+  const eom=[31,(anio%4===0&&(anio%100!==0||anio%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
+
+  // Nómina también es dinero que sale de la empresa (ya descuenta del banco),
+  // así que cuenta como egreso igual que los gastos pagados.
+  function nominaPeriodo(mesFiltro,anioFiltro){
+    return (PD().nomina||[]).filter(n=>{
+      const iso=toISODate(n.fecha); if(!iso) return false;
+      const [y,m]=iso.split('-');
+      if(parseInt(y)!==anioFiltro) return false;
+      return mesFiltro ? MESES_ES[parseInt(m)-1]===mesFiltro : true;
+    }).reduce((s,n)=>s+(n.monto||0),0);
+  }
 
   // Ingresos/egresos/pendiente del período elegido (un mes, o el año completo).
   let ingresos,pendCobro,egresos;
@@ -3213,7 +3260,7 @@ function renderDashboardMant(){
       if(!g.pagado) return false;
       const iso=toISODate(g.fecha); if(!iso) return false;
       const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo(mes,anio);
   } else {
     ingresos=totalCobradoAnio(anio);
     pendCobro=totalPendienteAnio(anio);
@@ -3221,56 +3268,23 @@ function renderDashboardMant(){
       if(!g.pagado) return false;
       const iso=toISODate(g.fecha); if(!iso) return false;
       return parseInt(iso.split('-')[0])===anio;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo('',anio);
   }
   const balance=ingresos-egresos;
 
-  // Fondo de reserva: todo lo cobrado menos todo lo gastado desde siempre (no solo
-  // el período elegido) — el mismo concepto de "Fondo Total" del control en Excel.
+  // Fondo de reserva: todo lo cobrado menos todo lo gastado (gastos + nómina)
+  // desde el inicio HASTA el corte del período elegido (fin del mes elegido, o
+  // fin del año si no hay mes) — por eso cambia según el filtro.
+  const mesIdxCorte=mes?MESES_ES.indexOf(mes):11;
+  const corte=`${anio}-${String(mesIdxCorte+1).padStart(2,'0')}-${String(eom[mesIdxCorte]).padStart(2,'0')}`;
   let cobradoTotal=0;
-  (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{cobradoTotal+=(p.total||p.monto||0);}));
-  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado).reduce((s,g)=>s+g.monto+g.itbis,0);
+  (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{ if((p.fecha||'')<=corte) cobradoTotal+=(p.total||p.monto||0); }));
+  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado&&(toISODate(g.fecha)||'')<=corte).reduce((s,g)=>s+g.monto+g.itbis,0)
+    + (PD().nomina||[]).filter(n=>(toISODate(n.fecha)||'')<=corte).reduce((s,n)=>s+(n.monto||0),0);
   const fondoTotal=cobradoTotal-gastadoTotal;
 
-  // Vencidos: siempre el atraso real actual, sin importar el filtro de mes/año.
-  const totalVencidasCxc=contarVencidasActual();
-  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida');
-  const totalVencidoCxp=vencidasCxp.reduce((s,r)=>s+r.saldo,0);
-
-  const statsEl=document.getElementById('dashMantStats');
-  if(statsEl) statsEl.innerHTML=`
-    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Ingresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(ingresos)}</div><div class="stat-sub">RD$ ${fmt(pendCobro)} pendiente por cobrar</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Egresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(egresos)}</div><div class="stat-sub">Gastos pagados del período</div></div>
-    <div class="stat-card"><div class="stat-icon ${balance>=0?'si-green':'si-danger'}"><i class="ti ti-scale"></i></div><div class="stat-label">Balance ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val" style="color:${balance>=0?'var(--green-dark)':'var(--danger)'}">RD$ ${fmt(balance)}</div><div class="stat-sub">Ingresos − egresos del período</div></div>
-    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-building-bank"></i></div><div class="stat-label">Fondo de Reserva</div><div class="stat-val">RD$ ${fmt(fondoTotal)}</div><div class="stat-sub">Acumulado histórico</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Cuotas Vencidas</div><div class="stat-val">${totalVencidasCxc}</div><div class="stat-sub">Cobros atrasados actuales</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-triangle"></i></div><div class="stat-label">CxP Vencido</div><div class="stat-val">RD$ ${fmt(totalVencidoCxp)}</div><div class="stat-sub">${vencidasCxp.length} factura(s)/gasto(s)</div></div>
-  `;
-
-  // Chart: tendencia de balance (ingresos - egresos) de los últimos 6 meses reales,
-  // independiente del filtro de arriba — siempre muestra lo más reciente.
-  const hoy=new Date();
-  const ultimos6=[];
-  for(let i=5;i>=0;i--){
-    const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
-    const m=MESES_ES[d.getMonth()], y=d.getFullYear();
-    const ing=cargosMantenimiento(m,y).filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.monto,0);
-    const eg=(PD().gastos||[]).filter(g=>{
-      if(!g.pagado) return false;
-      const iso=toISODate(g.fecha); if(!iso) return false;
-      const [gy,gm]=iso.split('-'); return parseInt(gy)===y && MESES_ES[parseInt(gm)-1]===m;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
-    ultimos6.push({mes:m.slice(0,3),bal:ing-eg});
-  }
-  const maxAbs=Math.max(...ultimos6.map(x=>Math.abs(x.bal)),1);
-  document.getElementById('dashMantChart').innerHTML=ultimos6.map(x=>`
-    <div class="bar-col">
-      <div class="bar-val" style="color:${x.bal>=0?'var(--green-dark)':'var(--danger)'}">${fmt(x.bal)}</div>
-      <div class="bar-fill" style="height:${Math.max(4,Math.round((Math.abs(x.bal)/maxAbs)*100))}px;background:${x.bal>=0?'var(--green)':'var(--danger)'}"></div>
-      <div class="bar-lbl">${x.mes}</div>
-    </div>`).join('');
-
-  // Estado de cobros del período elegido (o del año completo si no hay mes).
+  // Estado de cobros del período elegido (o del año completo si no hay mes) —
+  // se calcula una sola vez y alimenta la tarjeta "Cuotas Vencidas" y el panel.
   const mesesAEvaluar=mes?[mes]:MESES_ES;
   let pagadasN=0,pendientesN=0,vencidasN=0,montoPagado=0,montoPendiente=0,montoVencido=0;
   mesesAEvaluar.forEach(m=>{
@@ -3280,15 +3294,111 @@ function renderDashboardMant(){
       else { pendientesN++; montoPendiente+=r.monto; }
     });
   });
-  document.getElementById('dashMantCuotasCount').textContent=pagadasN+pendientesN+vencidasN;
-  document.getElementById('dashMantCuotasList').innerHTML=`
-    <div class="alert-item"><div class="alert-dot ad-g"></div><div><div class="alert-text">${pagadasN} cuota${pagadasN!==1?'s':''} pagada${pagadasN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoPagado)}</div></div></div>
-    <div class="alert-item"><div class="alert-dot ad-y"></div><div><div class="alert-text">${pendientesN} cuota${pendientesN!==1?'s':''} pendiente${pendientesN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoPendiente)}</div></div></div>
-    <div class="alert-item"><div class="alert-dot ad-r"></div><div><div class="alert-text">${vencidasN} cuota${vencidasN!==1?'s':''} vencida${vencidasN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoVencido)}</div></div></div>
+
+  // CxP vencido del mismo período (por fecha de vencimiento de la factura/gasto).
+  const mm=String(mesIdxCorte+1).padStart(2,'0');
+  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida').filter(r=>{
+    const fv=r.fecha_venc||'';
+    return fv.slice(0,4)===String(anio) && (!mes||fv.slice(5,7)===mm);
+  });
+  const totalVencidoCxp=vencidasCxp.reduce((s,r)=>s+r.saldo,0);
+
+  const statsEl=document.getElementById('dashMantStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card dm-card dm-green"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Ingresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(ingresos)}</div><div class="stat-sub">RD$ ${fmt(pendCobro)} pendiente por cobrar</div></div>
+    <div class="stat-card dm-card dm-red"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Egresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(egresos)}</div><div class="stat-sub">Gastos pagados del período</div></div>
+    <div class="stat-card dm-card ${balance>=0?'dm-green':'dm-red'}"><div class="stat-icon ${balance>=0?'si-green':'si-danger'}"><i class="ti ti-scale"></i></div><div class="stat-label">Balance ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val" style="color:${balance>=0?'var(--green-dark)':'var(--danger)'}">RD$ ${fmt(balance)}</div><div class="stat-sub">Ingresos − egresos del período</div></div>
+    <div class="stat-card dm-card dm-blue"><div class="stat-icon si-blue"><i class="ti ti-building-bank"></i></div><div class="stat-label">Fondo de Reserva</div><div class="stat-val">RD$ ${fmt(fondoTotal)}</div><div class="stat-sub">Acumulado hasta ${mes?mes+' '+anioLbl:'dic. '+anioLbl}</div></div>
+    <div class="stat-card dm-card dm-amber"><div class="stat-icon si-warn"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Cuotas Vencidas</div><div class="stat-val">${vencidasN}</div><div class="stat-sub">RD$ ${fmt(montoVencido)} del período</div></div>
+    <div class="stat-card dm-card dm-red"><div class="stat-icon si-danger"><i class="ti ti-alert-triangle"></i></div><div class="stat-label">CxP Vencido</div><div class="stat-val">RD$ ${fmt(totalVencidoCxp)}</div><div class="stat-sub">${vencidasCxp.length} factura(s)/gasto(s) del período</div></div>
   `;
 
-  document.getElementById('dashMantActList').innerHTML=STATE.log.slice(0,8).map(l=>`
-    <div class="act-item"><div class="act-icon"><i class="ti ti-activity"></i></div><div class="act-text"><strong>${l.user}</strong> — ${l.act}</div><div class="act-time">${l.fecha} ${l.hora}</div></div>`).join('');
+  // ── Panel "Estado de Cobros del Período": barra segmentada + 3 pastillas ──
+  const totalCuotas=pagadasN+pendientesN+vencidasN||1;
+  const pPag=Math.round(pagadasN/totalCuotas*100), pPen=Math.round(pendientesN/totalCuotas*100), pVen=100-pPag-pPen;
+  document.getElementById('dashMantCuotasCount').textContent=pagadasN+pendientesN+vencidasN;
+  document.getElementById('dashMantCuotasResumen').innerHTML=`
+    <div class="dm-progress">
+      <div class="dm-progress-seg" style="width:${pPag}%;background:var(--green)" title="Pagadas ${pPag}%"></div>
+      <div class="dm-progress-seg" style="width:${pPen}%;background:#e0a010" title="Pendientes ${pPen}%"></div>
+      <div class="dm-progress-seg" style="width:${pVen}%;background:var(--danger)" title="Vencidas ${pVen}%"></div>
+    </div>
+    <div class="dm-pills">
+      <div class="dm-pill dm-pill-green"><div class="dm-pill-num">${pagadasN}</div><div class="dm-pill-lbl">Pagadas</div><div class="dm-pill-sub">RD$ ${fmt(montoPagado)}</div></div>
+      <div class="dm-pill dm-pill-amber"><div class="dm-pill-num">${pendientesN}</div><div class="dm-pill-lbl">Pendientes</div><div class="dm-pill-sub">RD$ ${fmt(montoPendiente)}</div></div>
+      <div class="dm-pill dm-pill-red"><div class="dm-pill-num">${vencidasN}</div><div class="dm-pill-lbl">Vencidas</div><div class="dm-pill-sub">RD$ ${fmt(montoVencido)}</div></div>
+    </div>
+  `;
+
+  // ── Gráfico: Ingresos vs Egresos, un par de barras por cada mes que ya
+  // transcurrió del año (enero hasta el mes actual si es el año en curso, o
+  // hasta diciembre si es un año pasado) — crece solo cuando entra un mes nuevo.
+  const ultimoMesIdx = anio===hoy.getFullYear() ? hoy.getMonth() : (anio<hoy.getFullYear()?11:-1);
+  document.getElementById('dashMantChartTitle').textContent=`Ingresos vs. Egresos — ${anioLbl}`;
+  const meses=[];
+  for(let i=0;i<=ultimoMesIdx;i++){
+    const m=MESES_ES[i];
+    const ing=cargosMantenimiento(m,anio).filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.monto,0);
+    const eg=(PD().gastos||[]).filter(g=>{
+      if(!g.pagado) return false;
+      const iso=toISODate(g.fecha); if(!iso) return false;
+      const [gy,gm]=iso.split('-'); return parseInt(gy)===anio && MESES_ES[parseInt(gm)-1]===m;
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo(m,anio);
+    meses.push({mes:m.slice(0,3),ing,eg});
+  }
+  const chartEl=document.getElementById('dashMantChart');
+  if(!meses.length){
+    chartEl.innerHTML='<p style="color:var(--muted);font-size:13px">Aún no hay meses transcurridos en '+anioLbl+'.</p>';
+  } else {
+    const maxVal=Math.max(...meses.map(x=>Math.max(x.ing,x.eg)),1);
+    chartEl.innerHTML=meses.map(x=>`
+      <div class="dm-chart-month">
+        <div class="dm-chart-bars">
+          <div class="dm-chart-bar" style="height:${Math.max(3,Math.round(x.ing/maxVal*150))}px;background:var(--green)"><span class="dm-chart-bar-val" style="color:var(--green-dark)">${fmt(x.ing)}</span></div>
+          <div class="dm-chart-bar" style="height:${Math.max(3,Math.round(x.eg/maxVal*150))}px;background:var(--danger)"><span class="dm-chart-bar-val" style="color:var(--danger)">${fmt(x.eg)}</span></div>
+        </div>
+        <div class="dm-chart-lbl">${x.mes}</div>
+      </div>`).join('');
+  }
+
+  // ── Cobros por Unidad: foto del mes elegido (o el mes actual real si el
+  // filtro está en "Todo el año"), un chip de color por unidad ──
+  const mesUnidades=mes||MESES_ES[hoy.getMonth()];
+  const cargosUnidades=cargosMantenimiento(mesUnidades,anio);
+  const claseChip={Pagada:'dm-unit-pagada',Vencida:'dm-unit-vencida'};
+  document.getElementById('dashMantUnidades').innerHTML = cargosUnidades.length ? `
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:10px">${mesUnidades} ${anioLbl} · ${cargosUnidades.filter(r=>r.estado==='Pagada').length} al día de ${cargosUnidades.length}</p>
+    <div class="dm-units">
+      ${cargosUnidades.map(r=>`<div class="dm-unit-chip ${claseChip[r.estado]||'dm-unit-pendiente'}" title="${r.cliente||''} — ${r.concepto} — ${r.estado}">${r.apt_no}</div>`).join('')}
+    </div>` : '<p style="color:var(--muted);font-size:13px">Sin cargos configurados para este mes.</p>';
+
+  // ── Gastos por Categoría del período (misma ventana que Egresos arriba) ──
+  const gastosPeriodo=(PD().gastos||[]).filter(g=>{
+    const iso=toISODate(g.fecha); if(!iso) return false;
+    const [y,m]=iso.split('-');
+    if(parseInt(y)!==anio) return false;
+    return mes ? MESES_ES[parseInt(m)-1]===mes : true;
+  });
+  const porCategoria={};
+  gastosPeriodo.forEach(g=>{
+    const cat=(g.obs||'').match(/Categor[ií]a:\s*(.+)/)?.[1]?.trim()||'Otros';
+    if(!porCategoria[cat]) porCategoria[cat]={pagado:0,pendiente:0};
+    const total=g.monto+g.itbis;
+    if(g.pagado) porCategoria[cat].pagado+=total; else porCategoria[cat].pendiente+=total;
+  });
+  // Nómina no tiene estado pendiente (se registra ya pagada), va como categoría aparte.
+  const nominaTotalPeriodo=nominaPeriodo(mes,anio);
+  if(nominaTotalPeriodo>0) porCategoria['Nómina']={pagado:nominaTotalPeriodo,pendiente:0};
+  const cats=Object.entries(porCategoria).map(([nombre,v])=>({nombre,...v,total:v.pagado+v.pendiente})).sort((a,b)=>b.total-a.total);
+  const maxCat=Math.max(...cats.map(c=>c.total),1);
+  document.getElementById('dashMantGastosCat').innerHTML = cats.length ? cats.map(c=>`
+    <div class="dm-cat-row">
+      <div class="dm-cat-head"><span>${c.nombre}</span><span>RD$ ${fmt(c.total)}</span></div>
+      <div class="dm-cat-bar">
+        <div class="dm-cat-bar-seg" style="width:${Math.round(c.pagado/maxCat*100)}%;background:var(--green)" title="Pagado RD$ ${fmt(c.pagado)}"></div>
+        <div class="dm-cat-bar-seg" style="width:${Math.round(c.pendiente/maxCat*100)}%;background:#e0a010" title="Pendiente RD$ ${fmt(c.pendiente)}"></div>
+      </div>
+    </div>`).join('') : '<p style="color:var(--muted);font-size:13px">Sin gastos registrados en este período.</p>';
 }
 
 function viewCliente(i){
