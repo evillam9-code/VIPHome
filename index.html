@@ -3604,15 +3604,39 @@ let editingMovCajaIdx=null;
 // reales y las salidas de pagos reales a suplidores/gastos, para que el saldo
 // de Caja refleje el banco sin tener que digitar cada movimiento dos veces.
 // Los movimientos manuales de Caja quedan solo para ajustes de cuadre.
+// Devuelve el id del movimiento creado — quien llama lo guarda en el pago
+// original (p.cajaId) para poder editarlo/revertirlo automáticamente después.
 function registrarMovCajaAuto(tipo,concepto,monto,fechaISO,responsable){
-  if(!monto) return;
+  if(!monto) return null;
   if(!PD().caja) currentProject.data.caja=[];
+  const id='auto'+Date.now()+Math.random().toString(36).slice(2,7);
   PD().caja.push({
-    fecha: fechaES(fechaISO)||today(),
+    id, fecha: fechaES(fechaISO)||today(),
     concepto, tipo, monto,
     responsable: responsable||'',
     obs: 'Automático'
   });
+  if(typeof renderCaja==='function') renderCaja('caja');
+  return id;
+}
+
+// Ajusta un movimiento automático de Caja ya creado (cuando se edita el pago
+// que lo generó) — corrige monto y fecha sin duplicar la entrada.
+function ajustarMovCajaAuto(cajaId,nuevoMonto,fechaISO){
+  if(!cajaId) return;
+  const m=(PD().caja||[]).find(x=>x.id===cajaId);
+  if(!m) return;
+  m.monto=nuevoMonto;
+  if(fechaISO) m.fecha=fechaES(fechaISO)||m.fecha;
+  if(typeof renderCaja==='function') renderCaja('caja');
+}
+
+// Elimina el movimiento automático de Caja de un pago que fue revertido.
+function eliminarMovCajaAuto(cajaId){
+  if(!cajaId) return;
+  const arr=PD().caja||[];
+  const idx=arr.findIndex(x=>x.id===cajaId);
+  if(idx>=0) arr.splice(idx,1);
   if(typeof renderCaja==='function') renderCaja('caja');
 }
 
@@ -4422,7 +4446,7 @@ function savePago(){
       if(venta.pagado>=parseFloat(venta.precio||0)) venta.estado='Entregado';
     }
   }
-  registrarMovCajaAuto('Entrada','Cobro — '+(c.cliente||'')+' cuota #'+pago.ncuota,total,pago.fecha,'');
+  pago.cajaId=registrarMovCajaAuto('Entrada','Cobro — '+(c.cliente||'')+' cuota #'+pago.ncuota,total,pago.fecha,'');
   closeModal('modalPago');
   renderCxc();
   if(typeof renderVentas==='function') renderVentas();
@@ -5323,7 +5347,7 @@ function savePagoCxp(){
   const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
   if(banco) banco.saldo-=monto;
   if(!c.pagos) c.pagos=[];
-  c.pagos.push({
+  const pagoCxp={
     fecha:document.getElementById('pcx_fecha').value,
     monto,
     metodo:document.getElementById('pcx_metodo').value,
@@ -5332,10 +5356,11 @@ function savePagoCxp(){
     ncf:document.getElementById('pcx_ncf').value==='1',
     numncf:document.getElementById('pcx_numncf').value,
     obs:document.getElementById('pcx_obs').value
-  });
+  };
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
-  registrarMovCajaAuto('Salida','Pago a suplidor — '+nombre,monto,document.getElementById('pcx_fecha').value,'');
+  pagoCxp.cajaId=registrarMovCajaAuto('Salida','Pago a suplidor — '+nombre,monto,pagoCxp.fecha,'');
+  c.pagos.push(pagoCxp);
   closeModal('modalPagoCxp');
   renderCxp();
   if(typeof renderGastos==='function') renderGastos();
@@ -5442,6 +5467,7 @@ function revertirPagoCxp(key,pagoIdx){
   const p=c.pagos[pagoIdx];
   const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
   if(banco) banco.saldo+=(p.monto||0);
+  eliminarMovCajaAuto(p.cajaId);
   c.pagos.splice(pagoIdx,1);
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
@@ -5483,6 +5509,7 @@ function guardarEditarPagoCxp(){
   p.monto=nuevoMonto;
   p.referencia=document.getElementById('ecx_referencia').value;
   p.obs=document.getElementById('ecx_obs').value;
+  ajustarMovCajaAuto(p.cajaId,nuevoMonto,p.fecha);
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
   addLog('Editó pago a suplidor '+nombre);
@@ -7373,7 +7400,7 @@ function savePagoMant(){
   if(!c.pagos_mensuales) c.pagos_mensuales=[];
   const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
   if(banco) banco.saldo+=total;
-  c.pagos_mensuales.push({
+  const pagoMant={
     mes:document.getElementById('pm_mes').value,
     anio:parseInt(document.getElementById('pm_anio').value),
     fecha:document.getElementById('pm_fecha').value,
@@ -7385,8 +7412,9 @@ function savePagoMant(){
     ncf:document.getElementById('pm_ncf').value==='1',
     numncf:document.getElementById('pm_numncf').value,
     obs:document.getElementById('pm_obs').value
-  });
-  registrarMovCajaAuto('Entrada','Cobro mantenimiento — Apt. '+apt_no+' ('+concepto+')',total,document.getElementById('pm_fecha').value,'');
+  };
+  pagoMant.cajaId=registrarMovCajaAuto('Entrada','Cobro mantenimiento — Apt. '+apt_no+' ('+concepto+')',total,pagoMant.fecha,'');
+  c.pagos_mensuales.push(pagoMant);
   closeModal('modalPagoMant');
   renderCxc();
   if(typeof renderApartamentos==='function') renderApartamentos();
@@ -7496,6 +7524,7 @@ function guardarEditarPagoMant(){
   p.monto=nuevoMonto; p.mora=nuevaMora; p.total=nuevoTotal;
   p.referencia=document.getElementById('epm_referencia').value;
   p.obs=document.getElementById('epm_obs').value;
+  ajustarMovCajaAuto(p.cajaId,nuevoTotal,p.fecha);
   addLog('Editó pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||''));
   closeModal('modalEditarPagoMant');
   pintarHistorialPagosMant(cxcIdx);
@@ -7545,6 +7574,7 @@ function revertirPagoMant(cxcIdx,pagoIdx){
   const p=c.pagos_mensuales[pagoIdx];
   const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
   if(banco) banco.saldo-=(p.total||p.monto||0);
+  eliminarMovCajaAuto(p.cajaId);
   c.pagos_mensuales.splice(pagoIdx,1);
   addLog('Revirtió pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||'')+' — Motivo: '+motivo);
   closeModal('modalHistPagosMant');
