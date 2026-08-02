@@ -171,8 +171,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;color:#1b2a3b;font-size:14px;}
 .page.active{display:block;width:100%;}
 .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem;}
 .stat-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;}
-.stat-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
-.stat-val{font-size:22px;font-weight:700;color:var(--navy);}
+.stat-label{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.stat-val{font-size:27px;font-weight:700;color:var(--navy);}
 .stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
 .stat-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:.75rem;}
 .si-green{background:var(--green-light);color:var(--green-dark);} .si-blue{background:#e6f1fb;color:#185fa5;} .si-warn{background:var(--warn-l);color:#a0680a;} .si-danger{background:var(--danger-l);color:#b91c1c;}
@@ -601,6 +601,13 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-status" onchange="applyTableFilters('tblVencidas')">
       <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
     </select>
+    <select class="filter f-mes" id="vencidasMes" onchange="applyTableFilters('tblVencidas')">
+      <option value="">Todos los meses</option>
+      <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+      <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+      <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+    </select>
     <span class="badge b-red">Vencidas: <strong id="vencidasCount">0</strong></span>
     <button class="btn btn-outline" onclick="printModule('Cuotas Vencidas','tblVencidas')"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
@@ -656,8 +663,8 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   </div>
   <div class="bar" style="margin-top:.5rem">
     <span style="font-size:12px;color:var(--muted)">Imprimir por mes:</span>
-    <select class="filter" id="gastosMesImprimir"></select>
-    <select class="filter" id="gastosAnioImprimir"></select>
+    <select class="filter" id="gastosMesImprimir" onchange="renderGastosResumen()"></select>
+    <select class="filter" id="gastosAnioImprimir" onchange="renderGastosResumen()"></select>
     <button class="btn btn-outline" onclick="imprimirGastosPorMes()"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
   <div class="tbl-wrap">
@@ -697,11 +704,12 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-extra" id="cxpFiltroSuplidor" onchange="applyTableFilters('tblCxp')">
       <option value="">-- Todos los suplidores --</option>
     </select>
-    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Desde"/><span class="filter-date-sep">–</span>
-    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblCxp')" title="Hasta"/>
-    <select class="filter f-periodo" onchange="setPeriodo('tblCxp',this.value)">
-      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
-      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    <select class="filter f-mes" onchange="applyTableFilters('tblCxp')">
+      <option value="">Todos los meses</option>
+      <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+      <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+      <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
     </select>
     <button class="btn btn-primary" onclick="newCxpManual()"><i class="ti ti-plus"></i> Nueva Factura</button>
   </div>
@@ -737,6 +745,13 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar..." oninput="applyTableFilters('tblCxpVencidas')"/></div>
     <select class="filter f-status" onchange="applyTableFilters('tblCxpVencidas')">
       <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
+    </select>
+    <select class="filter f-mes" onchange="applyTableFilters('tblCxpVencidas')">
+      <option value="">Todos los meses</option>
+      <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+      <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+      <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
     </select>
     <span class="badge b-red">Vencidas: <strong id="cxpVencidasCount">0</strong></span>
     <button class="btn btn-outline" onclick="printModule('CxP Vencidas','tblCxpVencidas')"><i class="ti ti-printer"></i> Imprimir</button>
@@ -859,19 +874,14 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-extra" id="nomFiltroEmpleado" onchange="applyTableFilters('tblNomina')">
       <option value="">-- Todos los empleados --</option>
     </select>
-    <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Desde"/><span class="filter-date-sep">–</span>
-    <input type="date" class="filter f-hasta" onchange="marcarPeriodoPersonalizado('tblNomina')" title="Hasta"/>
-    <select class="filter f-periodo" onchange="setPeriodo('tblNomina',this.value)">
-      <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
-      <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
+    <select class="filter f-mes" onchange="applyTableFilters('tblNomina')">
+      <option value="">Todos los meses</option>
+      <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+      <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+      <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+      <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
     </select>
     <button class="btn btn-primary" onclick="newNomina()"><i class="ti ti-plus"></i> Registrar Pago</button>
-  </div>
-  <div class="bar" style="margin-top:.5rem">
-    <span style="font-size:12px;color:var(--muted)">Imprimir por mes:</span>
-    <select class="filter" id="nominaMesImprimir"></select>
-    <select class="filter" id="nominaAnioImprimir"></select>
-    <button class="btn btn-outline" onclick="imprimirNominaPorMes()"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
   <div class="tbl-wrap">
     <table id="tblNomina">
@@ -3407,14 +3417,29 @@ function renderGastosResumen(){
     const itbis=items.reduce((s,g)=>s+(g.itbis||0),0);
     return {mes, cantidad:items.length, monto, itbis, total:monto+itbis};
   });
-  const totalAnio=porMes.reduce((s,m)=>s+m.total,0);
-  const mesActual=MESES_ES[new Date().getMonth()];
-  const totalMesActual=porMes.find(m=>m.mes===mesActual)?.total||0;
+
+  // Dashboard: pagado/pendiente del mes elegido en "Imprimir por mes" (mismo
+  // selector, así el dashboard siempre coincide con lo que se va a imprimir).
+  const mesSel=document.getElementById('gastosMesImprimir');
+  const anioSel=document.getElementById('gastosAnioImprimir');
+  const mesNombre=mesSel&&mesSel.value?mesSel.value:MESES_ES[new Date().getMonth()];
+  const anioSelVal=anioSel&&anioSel.value?parseInt(anioSel.value):anio;
+  const mesIdx=MESES_ES.indexOf(mesNombre);
+  const itemsMes=(STATE.gastos||[]).filter(g=>{
+    const iso=toISODate(g.fecha);
+    if(!iso) return false;
+    const [y,m]=iso.split('-');
+    return parseInt(y)===anioSelVal && parseInt(m)===mesIdx+1;
+  });
+  const pagadosMes=itemsMes.filter(g=>g.pagado);
+  const pendientesMes=itemsMes.filter(g=>!g.pagado);
+  const totalPagadoMes=pagadosMes.reduce((s,g)=>s+g.monto+g.itbis,0);
+  const totalPendienteMes=pendientesMes.reduce((s,g)=>s+g.monto+g.itbis,0);
 
   const statsEl=document.getElementById('gastosStats');
   if(statsEl) statsEl.innerHTML=`
-    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Gastado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Gastado en ${mesActual}</div><div class="stat-val">RD$ ${fmt(totalMesActual)}</div><div class="stat-sub">Mes actual</div></div>
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-receipt"></i></div><div class="stat-label">Pagado en ${mesNombre} ${anioSelVal}</div><div class="stat-val">RD$ ${fmt(totalPagadoMes)}</div><div class="stat-sub">${pagadosMes.length} gasto${pagadosMes.length!==1?'s':''}</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mesNombre} ${anioSelVal}</div><div class="stat-val">RD$ ${fmt(totalPendienteMes)}</div><div class="stat-sub">${pendientesMes.length} gasto${pendientesMes.length!==1?'s':''}</div></div>
   `;
 
   tbody.innerHTML=porMes.map(m=>`<tr>
@@ -3574,6 +3599,60 @@ function saveBanco(){
 // cuadres que compara el saldo del sistema contra un conteo físico.
 // ═══════════════════════════════════════════════════
 let editingMovCajaIdx=null;
+
+// Registra automáticamente en Caja (nunca en Caja Chica) las entradas de cobros
+// reales y las salidas de pagos reales a suplidores/gastos, para que el saldo
+// de Caja refleje el banco sin tener que digitar cada movimiento dos veces.
+// Los movimientos manuales de Caja quedan solo para ajustes de cuadre.
+// Devuelve el id del movimiento creado — quien llama lo guarda en el pago
+// original (p.cajaId) para poder editarlo/revertirlo automáticamente después.
+function registrarMovCajaAuto(tipo,concepto,monto,fechaISO,responsable){
+  if(!monto) return null;
+  if(!PD().caja) currentProject.data.caja=[];
+  const id='auto'+Date.now()+Math.random().toString(36).slice(2,7);
+  PD().caja.push({
+    id, fecha: fechaES(fechaISO)||today(),
+    concepto, tipo, monto,
+    responsable: responsable||'',
+    obs: 'Automático'
+  });
+  if(typeof renderCaja==='function') renderCaja('caja');
+  return id;
+}
+
+// Ajusta un movimiento automático de Caja ya creado (cuando se edita el pago
+// que lo generó) — corrige monto y fecha sin duplicar la entrada.
+function ajustarMovCajaAuto(cajaId,nuevoMonto,fechaISO){
+  if(!cajaId) return;
+  const m=(PD().caja||[]).find(x=>x.id===cajaId);
+  if(!m) return;
+  m.monto=nuevoMonto;
+  if(fechaISO) m.fecha=fechaES(fechaISO)||m.fecha;
+  if(typeof renderCaja==='function') renderCaja('caja');
+}
+
+// Elimina el movimiento automático de Caja de un pago que fue revertido.
+function eliminarMovCajaAuto(cajaId){
+  if(!cajaId) return;
+  const arr=PD().caja||[];
+  const idx=arr.findIndex(x=>x.id===cajaId);
+  if(idx>=0) arr.splice(idx,1);
+  if(typeof renderCaja==='function') renderCaja('caja');
+}
+
+// Deshace en Banco+Caja todos los pagos de un registro (cxc, gasto o factura
+// manual) antes de eliminarlo por completo, para que no queden movimientos
+// automáticos huérfanos ni dinero "fantasma" en la cuenta bancaria.
+// signo=1 → eran cobros (entraron al banco, hay que restarlos al revertir).
+// signo=-1 → eran pagos a suplidor (salieron del banco, hay que devolverlos).
+function deshacerPagosDeRegistro(pagos,signo){
+  (pagos||[]).forEach(p=>{
+    const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
+    const monto=p.total!=null?p.total:(p.monto||0);
+    if(banco) banco.saldo-=signo*monto;
+    eliminarMovCajaAuto(p.cajaId);
+  });
+}
 
 function renderCaja(tipo){
   const tbody=document.getElementById(tipo==='cajaChica'?'tbodyCajaChica':'tbodyCaja');
@@ -3827,7 +3906,6 @@ function renderNomina(){
     if(nombres.includes(actual)) empSel.value=actual;
   }
 
-  initSelectMesAnioNomina();
   renderNominaResumen();
 }
 
@@ -3867,37 +3945,6 @@ function exportarResumenNomina(){
   exportTable('tblNominaResumen','Resumen Nómina '+new Date().getFullYear());
 }
 
-// Llena los selects de Mes/Año de "Imprimir por mes" (una sola vez) — mismo patrón que Gastos.
-function initSelectMesAnioNomina(){
-  const mesSel=document.getElementById('nominaMesImprimir');
-  const anioSel=document.getElementById('nominaAnioImprimir');
-  if(mesSel && mesSel.dataset.init!=='1'){
-    mesSel.innerHTML=MESES_ES.map(m=>`<option>${m}</option>`).join('');
-    mesSel.value=MESES_ES[new Date().getMonth()];
-    mesSel.dataset.init='1';
-  }
-  if(anioSel && anioSel.dataset.init!=='1'){
-    const y=new Date().getFullYear();
-    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
-    anioSel.value=y;
-    anioSel.dataset.init='1';
-  }
-}
-
-function imprimirNominaPorMes(){
-  const mesSel=document.getElementById('nominaMesImprimir');
-  const anioSel=document.getElementById('nominaAnioImprimir');
-  const mesIdx=MESES_ES.indexOf(mesSel.value);
-  const anio=parseInt(anioSel.value);
-  const desde=`${anio}-${String(mesIdx+1).padStart(2,'0')}-01`;
-  const ultimoDia=new Date(anio,mesIdx+1,0).getDate();
-  const hasta=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(ultimoDia).padStart(2,'0')}`;
-  const bar=document.getElementById('tblNomina').closest('.module-view, .page').querySelector('.bar');
-  bar.querySelector('.f-desde').value=desde;
-  bar.querySelector('.f-hasta').value=hasta;
-  marcarPeriodoPersonalizado('tblNomina');
-  printModule(`Nómina — ${mesSel.value} ${anio}`,'tblNomina');
-}
 
 // Recibo individual de un pago de nómina ya registrado (reemplaza el botón que
 // antes llamaba a printRecibo(i), función de CxC que no aplicaba aquí).
@@ -4205,6 +4252,7 @@ function applyTableFilters(tableId){
   const statusVal=(bar.querySelector('.f-status')?.value||'').toLowerCase();
   const desde=bar.querySelector('.f-desde')?.value||'';
   const hasta=bar.querySelector('.f-hasta')?.value||'';
+  const mesVal=bar.querySelector('.f-mes')?.value||'';
   const extras=[...bar.querySelectorAll('.f-extra')].map(el=>(el.value||'').toLowerCase()).filter(Boolean);
   Array.from(table.querySelectorAll('tbody tr')).forEach(row=>{
     let ok=true;
@@ -4218,6 +4266,10 @@ function applyTableFilters(tableId){
         if(desde&&f<desde) ok=false;
         if(hasta&&f>hasta) ok=false;
       }
+    }
+    if(ok&&mesVal){
+      const f=row.dataset.fecha||'';
+      ok = f.slice(5,7)===mesVal;
     }
     row.style.display=ok?'':'none';
   });
@@ -4251,9 +4303,14 @@ function marcarPeriodoPersonalizado(tableId){
 
 function deleteRow(collection,index,tbodyId,rerender){
   if(!confirm('¿Está seguro de eliminar este registro?'))return;
+  if(collection==='gastos'){
+    const g=STATE.gastos[index];
+    if(g) deshacerPagosDeRegistro(g.pagos,-1);
+  }
   STATE[collection].splice(index,1);
   addLog('Eliminó registro en: '+collection);
   rerender();
+  if(collection==='gastos'&&typeof renderBancos==='function') renderBancos();
 }
 
 function addLog(act){
@@ -4408,6 +4465,7 @@ function savePago(){
       if(venta.pagado>=parseFloat(venta.precio||0)) venta.estado='Entregado';
     }
   }
+  pago.cajaId=registrarMovCajaAuto('Entrada','Cobro — '+(c.cliente||'')+' cuota #'+pago.ncuota,total,pago.fecha,'');
   closeModal('modalPago');
   renderCxc();
   if(typeof renderVentas==='function') renderVentas();
@@ -4953,7 +5011,13 @@ function saveCxcManual(){
 
 function deleteCxc(i){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
-  if(confirm('¿Eliminar esta CxC?')){ PD().cxc.splice(i,1); renderCxc(); }
+  const c=(PD().cxc||[])[i];
+  if(confirm('¿Eliminar esta CxC?')){
+    if(c) deshacerPagosDeRegistro(c.pagos||c.pagos_mensuales,1);
+    PD().cxc.splice(i,1);
+    renderCxc();
+    if(typeof renderBancos==='function') renderBancos();
+  }
 }
 function editCxc(i){
   // Simple: reuse manual modal prefilled
@@ -5035,7 +5099,7 @@ function resolverCxp(key){
 function sincronizarPagadoCxp(ref){ ref.pagado = cxpSaldoBruto(ref)<=0.009; }
 
 function buildCxpRows(){
-  const manual=(PD().cxp||[]).map(c=>{
+  const manual=(PD().cxp||[]).filter(c=>cxpSaldo(c)>0.009).map(c=>{
     if(!c.id) c.id=Date.now()+Math.floor(Math.random()*1000); // backfill ids en datos antiguos
     return {...c, key:'manual:'+c.id};
   });
@@ -5186,7 +5250,7 @@ function renderCxpVencidas(){
     const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
     const pagarBtn = canEdit?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${r.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'';
     const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${sup.tel}','${supNombre.replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
-    return `<tr>
+    return `<tr data-fecha="${toISODate(r.fecha_venc)}">
       <td><strong>${r.factura||'—'}</strong></td>
       <td>${supNombre}</td>
       <td>${r.concepto||'—'}</td>
@@ -5264,12 +5328,17 @@ function saveCxpManual(){
 
 function deleteCxp(key){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
-  const {origen}=resolverCxp(key);
+  const {origen,ref}=resolverCxp(key);
   if(origen!=='manual'){alert('Este renglón viene de Gastos — elimínelo desde el módulo Gastos.');return;}
   const realId=Number(String(key).split(':')[1]);
   const idx=(PD().cxp||[]).findIndex(x=>x.id===realId);
   if(idx<0)return;
-  if(confirm('¿Eliminar esta factura de suplidor?')){ PD().cxp.splice(idx,1); renderCxp(); }
+  if(confirm('¿Eliminar esta factura de suplidor?')){
+    deshacerPagosDeRegistro(ref?.pagos,-1);
+    PD().cxp.splice(idx,1);
+    renderCxp();
+    if(typeof renderBancos==='function') renderBancos();
+  }
 }
 
 // ── Registrar pago (aplica igual a facturas manuales y a gastos pendientes) ──
@@ -5308,7 +5377,7 @@ function savePagoCxp(){
   const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
   if(banco) banco.saldo-=monto;
   if(!c.pagos) c.pagos=[];
-  c.pagos.push({
+  const pagoCxp={
     fecha:document.getElementById('pcx_fecha').value,
     monto,
     metodo:document.getElementById('pcx_metodo').value,
@@ -5317,13 +5386,15 @@ function savePagoCxp(){
     ncf:document.getElementById('pcx_ncf').value==='1',
     numncf:document.getElementById('pcx_numncf').value,
     obs:document.getElementById('pcx_obs').value
-  });
+  };
   sincronizarPagadoCxp(c);
+  const nombre=c.suplidor||c.descripcion||'';
+  pagoCxp.cajaId=registrarMovCajaAuto('Salida','Pago a suplidor — '+nombre,monto,pagoCxp.fecha,'');
+  c.pagos.push(pagoCxp);
   closeModal('modalPagoCxp');
   renderCxp();
   if(typeof renderGastos==='function') renderGastos();
   if(typeof renderBancos==='function') renderBancos();
-  const nombre=c.suplidor||c.descripcion||'';
   addLog('Pago a suplidor registrado — '+nombre+' RD$ '+fmt(monto));
 }
 
@@ -5426,6 +5497,7 @@ function revertirPagoCxp(key,pagoIdx){
   const p=c.pagos[pagoIdx];
   const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
   if(banco) banco.saldo+=(p.monto||0);
+  eliminarMovCajaAuto(p.cajaId);
   c.pagos.splice(pagoIdx,1);
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
@@ -5467,6 +5539,7 @@ function guardarEditarPagoCxp(){
   p.monto=nuevoMonto;
   p.referencia=document.getElementById('ecx_referencia').value;
   p.obs=document.getElementById('ecx_obs').value;
+  ajustarMovCajaAuto(p.cajaId,nuevoMonto,p.fecha);
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
   addLog('Editó pago a suplidor '+nombre);
@@ -7253,16 +7326,12 @@ function renderCxcMant(){
   const pendientes=rows.filter(r=>r.estado!=='Pagada');
   const totalCobrado=pagadas.reduce((s,r)=>s+r.monto,0);
   const totalPendiente=pendientes.reduce((s,r)=>s+r.monto,0);
-  const totalAnio=totalCobradoAnio(anio);
-  const totalPendienteAnioVal=totalPendienteAnio(anio);
   // Ojo: esto es el atraso real (últimos meses), NO solo el mes seleccionado arriba —
   // así coincide siempre con el badge del menú y con Cuotas Vencidas.
   const totalVencidas=contarVencidasActual();
 
   const statsEl=document.getElementById('cxcMantStats');
   if(statsEl) statsEl.innerHTML=`
-    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Cobrado ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
-    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-clock"></i></div><div class="stat-label">Total Pendiente ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendienteAnioVal)}</div><div class="stat-sub">Acumulado del año</div></div>
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-cash"></i></div><div class="stat-label">Cobrado en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalCobrado)}</div><div class="stat-sub">${pagadas.length} de ${rows.length} cargos</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-clock"></i></div><div class="stat-label">Pendiente en ${mes} ${anio}</div><div class="stat-val">RD$ ${fmt(totalPendiente)}</div><div class="stat-sub">${pendientes.length} por cobrar</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${totalVencidas}</div><div class="stat-sub">Atraso real, todos los meses</div></div>
@@ -7361,7 +7430,7 @@ function savePagoMant(){
   if(!c.pagos_mensuales) c.pagos_mensuales=[];
   const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
   if(banco) banco.saldo+=total;
-  c.pagos_mensuales.push({
+  const pagoMant={
     mes:document.getElementById('pm_mes').value,
     anio:parseInt(document.getElementById('pm_anio').value),
     fecha:document.getElementById('pm_fecha').value,
@@ -7373,7 +7442,9 @@ function savePagoMant(){
     ncf:document.getElementById('pm_ncf').value==='1',
     numncf:document.getElementById('pm_numncf').value,
     obs:document.getElementById('pm_obs').value
-  });
+  };
+  pagoMant.cajaId=registrarMovCajaAuto('Entrada','Cobro mantenimiento — Apt. '+apt_no+' ('+concepto+')',total,pagoMant.fecha,'');
+  c.pagos_mensuales.push(pagoMant);
   closeModal('modalPagoMant');
   renderCxc();
   if(typeof renderApartamentos==='function') renderApartamentos();
@@ -7483,6 +7554,7 @@ function guardarEditarPagoMant(){
   p.monto=nuevoMonto; p.mora=nuevaMora; p.total=nuevoTotal;
   p.referencia=document.getElementById('epm_referencia').value;
   p.obs=document.getElementById('epm_obs').value;
+  ajustarMovCajaAuto(p.cajaId,nuevoTotal,p.fecha);
   addLog('Editó pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||''));
   closeModal('modalEditarPagoMant');
   pintarHistorialPagosMant(cxcIdx);
@@ -7532,6 +7604,7 @@ function revertirPagoMant(cxcIdx,pagoIdx){
   const p=c.pagos_mensuales[pagoIdx];
   const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
   if(banco) banco.saldo-=(p.total||p.monto||0);
+  eliminarMovCajaAuto(p.cajaId);
   c.pagos_mensuales.splice(pagoIdx,1);
   addLog('Revirtió pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||'')+' — Motivo: '+motivo);
   closeModal('modalHistPagosMant');
@@ -7663,7 +7736,7 @@ function renderVencidas(){
     const waBtn = !r.telWA ? '' : r.esMant
       ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
       : `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${r.telWA}','${(r.cliente||'').replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
-    return `<tr>
+    return `<tr data-fecha="${toISODate(r.proximoVenc)}">
       <td><strong>${r.ref||'—'}</strong></td>
       <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
       <td>${r.concepto||'—'}</td>
