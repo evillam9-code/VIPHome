@@ -429,7 +429,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
             <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
           </select>
           <select class="filter" id="dashMantAnio" onchange="renderDashboardMant()"></select>
-          <button class="btn btn-outline" onclick="generarInformeMensual()"><i class="ti ti-printer"></i> Informe Mensual</button>
+          <button class="btn btn-outline" onclick="abrirInformeMensual()"><i class="ti ti-printer"></i> Informe Mensual</button>
         </div>
         <div class="stat-grid" id="dashMantStats"></div>
         <div class="card dm-panel" style="margin-top:1rem">
@@ -1133,6 +1133,23 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     </div>
   </div>
   <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalSuplidor')">Cancelar</button><button class="btn btn-primary" onclick="saveSuplidor()"><i class="ti ti-check"></i> Guardar</button></div></div>
+</div>
+
+<!-- Informe Mensual: solo pide mes/año, el reporte se arma e imprime aparte -->
+<div class="modal-bg" id="modalInformeMensual">
+  <div class="modal" style="max-width:380px"><div class="modal-head"><h2>Informe Mensual</h2><button class="modal-close" onclick="closeModal('modalInformeMensual')">×</button></div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="fg"><label>Mes</label><select id="im_mes">
+        <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+        <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+        <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+        <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+      </select></div>
+      <div class="fg"><label>Año</label><select id="im_anio"></select></div>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalInformeMensual')">Cancelar</button><button class="btn btn-primary" onclick="generarInformeMensual()"><i class="ti ti-printer"></i> Generar e Imprimir</button></div></div>
 </div>
 
 <!-- Gasto -->
@@ -3407,11 +3424,22 @@ function renderDashboardMant(){
 // detalle completo de cobros, gastos y nómina del mes. Usa el mes/año del
 // filtro del dashboard; si estaba en "Todo el año" usa el mes actual real,
 // porque el informe es siempre de UN mes.
+// Abre el modal simple (solo mes/año) que dispara el Informe Mensual —
+// desacoplado del filtro del dashboard para que sea obvio e independiente.
+function abrirInformeMensual(){
+  const mesSel=document.getElementById('im_mes');
+  const anioSel=document.getElementById('im_anio');
+  mesSel.value=MESES_ES[new Date().getMonth()];
+  const y=new Date().getFullYear();
+  anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+  anioSel.value=y;
+  openModal('modalInformeMensual');
+}
+
 function generarInformeMensual(){
-  const mesSel=document.getElementById('dashMantMes');
-  const anioSel=document.getElementById('dashMantAnio');
-  const mes=(mesSel&&mesSel.value)||MESES_ES[new Date().getMonth()];
-  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  const mes=document.getElementById('im_mes').value;
+  const anio=parseInt(document.getElementById('im_anio').value);
+  closeModal('modalInformeMensual');
 
   const cargos=cargosMantenimiento(mes,anio);
   const pagadas=cargos.filter(r=>r.estado==='Pagada');
@@ -3448,9 +3476,21 @@ function generarInformeMensual(){
   const vencidasCxc=cargos.filter(r=>r.estado==='Vencida');
 
   const proj=currentProject?currentProject.name:'VIP Home';
+  const cfg=currentProject?.config||{};
   const usuario=(USUARIOS.find(u=>u.user===currentUser)?.nombre)||currentUser||'admin';
   const fechaGen=new Date().toLocaleDateString('es-DO',{day:'2-digit',month:'long',year:'numeric'});
   const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
+
+  // Resumen del Sistema: foto general del proyecto (no solo el mes), para dar
+  // contexto de tamaño y salud general junto al resumen financiero del mes.
+  const apts=PD().apartamentos||[];
+  const habitados=apts.filter(a=>a.estado==='Habitado').length;
+  const saldoBancario=(PD().bancos||[]).reduce((s,b)=>s+(b.saldo||0),0);
+  const saldoCaja=(PD().caja||[]).reduce((s,m)=>s+(m.tipo==='Entrada'?m.monto:-m.monto),0);
+  const totalSuplidores=(PD().suplidores||[]).length;
+  const totalEmpleados=(PD().empleados||[]).filter(e=>e.estado==='Activo').length;
+
+  const huboBeneficio=balance>=0;
 
   const filaCargo=r=>`<tr><td>${r.apt_no}</td><td>${r.cliente||'—'}</td><td>${r.concepto}</td><td>RD$ ${fmt(r.monto)}</td><td><span class="badge ${st[r.estado]||'b-gray'}">${r.estado}</span></td></tr>`;
   const filaGasto=g=>`<tr><td>${g.fecha}</td><td>${(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—'}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`;
@@ -3461,16 +3501,19 @@ function generarInformeMensual(){
     <title>Informe Mensual — ${mes} ${anio} — ${proj}</title>
     <style>
       body{font-family:'Segoe UI',sans-serif;margin:30px;color:#1b2a3b;font-size:12px;}
-      .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;border-bottom:2px solid #6ab254;padding-bottom:12px;}
-      .header img{height:48px;width:auto;}
-      .header-right{text-align:right;}
-      .header-right h1{font-size:18px;font-weight:700;color:#1b2a3b;margin:0;}
-      .header-right p{font-size:12px;color:#8a9bb0;margin:2px 0;}
-      .meta{display:flex;justify-content:space-between;font-size:11px;color:#8a9bb0;margin-bottom:18px;}
+      .portada{text-align:center;border-bottom:3px solid #6ab254;padding-bottom:18px;margin-bottom:18px;}
+      .portada img{height:90px;width:auto;margin-bottom:10px;}
+      .portada h1{font-size:20px;font-weight:800;color:#1b2a3b;margin:0;}
+      .portada p{font-size:12px;color:#8a9bb0;margin:2px 0;}
+      .portada .sub{font-size:15px;font-weight:700;color:#6ab254;margin-top:10px;}
+      .meta{display:flex;justify-content:center;gap:24px;font-size:11px;color:#8a9bb0;margin-bottom:20px;}
       h2.sec{font-size:14px;color:#1b2a3b;border-left:4px solid #6ab254;padding-left:8px;margin:24px 0 10px;}
       .resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px;}
       .rc{border:1px solid #e8ecf0;border-radius:8px;padding:10px 12px;}
       .rc-lbl{font-size:11px;color:#8a9bb0;} .rc-val{font-size:16px;font-weight:700;margin-top:2px;}
+      .beneficio{margin:16px 0;padding:16px;border-radius:10px;text-align:center;font-size:15px;font-weight:700;}
+      .beneficio-si{background:#e6f7ea;color:#1a7d3a;border:1px solid #b7e3c3;}
+      .beneficio-no{background:#fbe1e1;color:#b91c1c;border:1px solid #f3c9c9;}
       table{width:100%;border-collapse:collapse;margin-top:6px;}
       th{background:#1b2a3b;color:#fff;padding:7px 9px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;}
       td{padding:6px 9px;border-bottom:1px solid #e8ecf0;font-size:11px;}
@@ -3481,27 +3524,38 @@ function generarInformeMensual(){
       @media print{@page{margin:1.5cm;}button{display:none!important;}}
     </style>
   </head><body>
-  <div class="header">
+  <div class="portada">
     <img src="${LOGO_DATA}" alt="VIP Home"/>
-    <div class="header-right">
-      <h1>Informe Mensual — ${mes} ${anio}</h1>
-      <p>${proj} — VIP Home Inmobiliaria SRL</p>
-      <p>Calle Penetración 1 esq. c/11, Urb. Thomén · Santiago, RD</p>
-    </div>
+    <h1>VIP Home Inmobiliaria SRL</h1>
+    <p>RNC: ${cfg.rnc||'—'} · Calle Penetración 1 esq. c/11, Urb. Thomén · Santiago, RD</p>
+    <p>${proj}${cfg.direccion?' — '+cfg.direccion:''}</p>
+    <div class="sub">INFORME MENSUAL — ${mes.toUpperCase()} ${anio}</div>
   </div>
   <div class="meta"><span>Generado por: <strong>${usuario}</strong></span><span>Fecha de generación: ${fechaGen}</span></div>
-  <button onclick="window.print()" style="background:#6ab254;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;margin-bottom:10px;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
+  <button onclick="window.print()" style="display:block;margin:0 auto 14px;background:#6ab254;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
 
-  <h2 class="sec">Resumen General</h2>
+  <h2 class="sec">Resumen del Sistema</h2>
+  <div class="resumen">
+    <div class="rc"><div class="rc-lbl">Unidades habitadas</div><div class="rc-val">${habitados} de ${apts.length}</div></div>
+    <div class="rc"><div class="rc-lbl">Saldo bancario total</div><div class="rc-val">RD$ ${fmt(saldoBancario)}</div></div>
+    <div class="rc"><div class="rc-lbl">Saldo en Caja</div><div class="rc-val">RD$ ${fmt(saldoCaja)}</div></div>
+    <div class="rc"><div class="rc-lbl">Suplidores registrados</div><div class="rc-val">${totalSuplidores}</div></div>
+    <div class="rc"><div class="rc-lbl">Empleados activos</div><div class="rc-val">${totalEmpleados}</div></div>
+    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${mes})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
+  </div>
+
+  <h2 class="sec">Resumen General del Mes</h2>
   <div class="resumen">
     <div class="rc"><div class="rc-lbl">Ingresos del mes</div><div class="rc-val" style="color:#1a7d3a">RD$ ${fmt(ingresos)}</div></div>
     <div class="rc"><div class="rc-lbl">Egresos del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(egresos)}</div></div>
     <div class="rc"><div class="rc-lbl">Balance del mes</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
-    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${mes})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
     <div class="rc"><div class="rc-lbl">Cuotas Vencidas del mes</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
     <div class="rc"><div class="rc-lbl">CxP Vencido del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(totalVencidoCxp)}</div></div>
+    <div class="rc"><div class="rc-lbl">Pendiente por cobrar</div><div class="rc-val">RD$ ${fmt(pendCobro)}</div></div>
   </div>
-  <p style="font-size:11px;color:#8a9bb0">Pendiente por cobrar del mes: RD$ ${fmt(pendCobro)} · Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)}</p>
+  <div class="beneficio ${huboBeneficio?'beneficio-si':'beneficio-no'}">
+    ${huboBeneficio?'✅ SÍ hubo beneficio este mes':'⚠️ NO hubo beneficio este mes'} — Balance: RD$ ${fmt(balance)} (Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)})
+  </div>
 
   <h2 class="sec">Detalle de Cobros (${cargos.length})</h2>
   <table><thead><tr><th>Unidad</th><th>Cliente</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr></thead>
