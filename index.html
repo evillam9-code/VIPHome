@@ -720,8 +720,8 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   </div>
   <div class="bar" style="margin-top:.5rem">
     <span style="font-size:12px;color:var(--muted)">Imprimir por mes:</span>
-    <select class="filter" id="gastosMesImprimir" onchange="renderGastosResumen()"></select>
-    <select class="filter" id="gastosAnioImprimir" onchange="renderGastosResumen()"></select>
+    <select class="filter" id="gastosMesImprimir" onchange="filtrarGastosPorMesSeleccionado()"></select>
+    <select class="filter" id="gastosAnioImprimir" onchange="filtrarGastosPorMesSeleccionado()"></select>
     <button class="btn btn-outline" onclick="imprimirGastosPorMes()"><i class="ti ti-printer"></i> Imprimir</button>
   </div>
   <div class="tbl-wrap">
@@ -3750,9 +3750,13 @@ function initSelectMesAnioGastos(){
 
 // Filtra la tabla por el mes/año elegidos (mismo mecanismo que el filtro de fecha
 // normal) y luego imprime — así el reporte impreso siempre coincide con lo filtrado.
-function imprimirGastosPorMes(){
+// "Imprimir por mes" ahora también filtra la tabla que se ve en pantalla al
+// cambiar el select — antes solo afectaba lo impreso, y la tabla visible
+// seguía mostrando todos los meses aunque se eligiera uno específico.
+function filtrarGastosPorMesSeleccionado(){
   const mesSel=document.getElementById('gastosMesImprimir');
   const anioSel=document.getElementById('gastosAnioImprimir');
+  if(!mesSel.value)return;
   const mesIdx=MESES_ES.indexOf(mesSel.value);
   const anio=parseInt(anioSel.value);
   const desde=`${anio}-${String(mesIdx+1).padStart(2,'0')}-01`;
@@ -3762,7 +3766,14 @@ function imprimirGastosPorMes(){
   bar.querySelector('.f-desde').value=desde;
   bar.querySelector('.f-hasta').value=hasta;
   marcarPeriodoPersonalizado('tblGasto');
-  printModule(`Gastos — ${mesSel.value} ${anio}`,'tblGasto');
+  renderGastosResumen();
+}
+
+function imprimirGastosPorMes(){
+  filtrarGastosPorMesSeleccionado();
+  const mesSel=document.getElementById('gastosMesImprimir');
+  const anioSel=document.getElementById('gastosAnioImprimir');
+  printModule(`Gastos — ${mesSel.value} ${anioSel.value}`,'tblGasto');
 }
 
 // Marca/desmarca todos los checkboxes de las filas actualmente visibles (respeta
