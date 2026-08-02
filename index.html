@@ -390,9 +390,31 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
         </div>
       </div>
       <div id="dashMantenimiento" style="display:none">
-        <div class="card">
-          <div class="card-title">Control</div>
-          <p style="color:var(--muted);font-size:13px">El cobro de mantenimiento pendiente se movió al módulo Apartamentos. Aquí se agregarán próximamente otros indicadores de control.</p>
+        <div class="bar" style="margin-bottom:1rem">
+          <span style="font-size:12px;color:var(--muted);font-weight:500">Mostrando</span>
+          <select class="filter" id="dashMantMes" onchange="renderDashboardMant()">
+            <option value="">Todo el año</option>
+            <option value="Enero">Enero</option><option value="Febrero">Febrero</option><option value="Marzo">Marzo</option>
+            <option value="Abril">Abril</option><option value="Mayo">Mayo</option><option value="Junio">Junio</option>
+            <option value="Julio">Julio</option><option value="Agosto">Agosto</option><option value="Septiembre">Septiembre</option>
+            <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
+          </select>
+          <select class="filter" id="dashMantAnio" onchange="renderDashboardMant()"></select>
+        </div>
+        <div class="stat-grid" id="dashMantStats"></div>
+        <div class="dash-grid" style="margin-top:1rem">
+          <div class="card">
+            <div class="card-title">Ingresos vs. Egresos — últimos 6 meses</div>
+            <div class="bar-chart" id="dashMantChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Estado de cobros del período <span id="dashMantCuotasCount" style="font-size:11px;background:var(--light);color:var(--muted);padding:2px 7px;border-radius:20px;font-weight:500;">0</span></div>
+            <div id="dashMantCuotasList"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:1rem">
+          <div class="card-title">Actividad reciente</div>
+          <div id="dashMantActList"></div>
         </div>
       </div>
     </div>
@@ -3117,7 +3139,7 @@ function renderDashboard(){
   const esMant=currentProject && currentProject.modo==='mantenimiento';
   document.getElementById('dashConstruccion').style.display=esMant?'none':'';
   document.getElementById('dashMantenimiento').style.display=esMant?'':'none';
-  if(esMant){ return; }
+  if(esMant){ renderDashboardMant(); return; }
   const entregados=STATE.financiamientos.filter(f=>f.situacion==='ENTREGADO');
   const totalCxC=entregados.reduce((s,f)=>s+f.monto,0);
   const totalGastos=STATE.gastos.reduce((s,g)=>s+g.monto+g.itbis,0);
@@ -3160,6 +3182,112 @@ function renderDashboard(){
 
   // Activity
   document.getElementById('actList').innerHTML=STATE.log.slice(0,8).map(l=>`
+    <div class="act-item"><div class="act-icon"><i class="ti ti-activity"></i></div><div class="act-text"><strong>${l.user}</strong> — ${l.act}</div><div class="act-time">${l.fecha} ${l.hora}</div></div>`).join('');
+}
+
+// Dashboard de proyectos de Mantenimiento (condominios/torres): resumen financiero
+// del mes o año elegido — ingresos de mantenimiento cobrados, egresos de gastos
+// pagados, balance, fondo de reserva acumulado (todo el histórico) y vencidos.
+// Los datos de PD() ya están acotados al proyecto activo, así que cada torre ve
+// solo lo suyo.
+function renderDashboardMant(){
+  const mesSel=document.getElementById('dashMantMes');
+  const anioSel=document.getElementById('dashMantAnio');
+  if(anioSel && anioSel.dataset.init!=='1'){
+    const y=new Date().getFullYear();
+    anioSel.innerHTML=[y-1,y,y+1].map(yy=>`<option value="${yy}">${yy}</option>`).join('');
+    anioSel.value=y;
+    anioSel.dataset.init='1';
+  }
+  const mes=mesSel?mesSel.value:'';
+  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+  const anioLbl=anio;
+
+  // Ingresos/egresos/pendiente del período elegido (un mes, o el año completo).
+  let ingresos,pendCobro,egresos;
+  if(mes){
+    const rows=cargosMantenimiento(mes,anio);
+    ingresos=rows.filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.monto,0);
+    pendCobro=rows.filter(r=>r.estado!=='Pagada').reduce((s,r)=>s+r.monto,0);
+    egresos=(PD().gastos||[]).filter(g=>{
+      if(!g.pagado) return false;
+      const iso=toISODate(g.fecha); if(!iso) return false;
+      const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
+    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+  } else {
+    ingresos=totalCobradoAnio(anio);
+    pendCobro=totalPendienteAnio(anio);
+    egresos=(PD().gastos||[]).filter(g=>{
+      if(!g.pagado) return false;
+      const iso=toISODate(g.fecha); if(!iso) return false;
+      return parseInt(iso.split('-')[0])===anio;
+    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+  }
+  const balance=ingresos-egresos;
+
+  // Fondo de reserva: todo lo cobrado menos todo lo gastado desde siempre (no solo
+  // el período elegido) — el mismo concepto de "Fondo Total" del control en Excel.
+  let cobradoTotal=0;
+  (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{cobradoTotal+=(p.total||p.monto||0);}));
+  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado).reduce((s,g)=>s+g.monto+g.itbis,0);
+  const fondoTotal=cobradoTotal-gastadoTotal;
+
+  // Vencidos: siempre el atraso real actual, sin importar el filtro de mes/año.
+  const totalVencidasCxc=contarVencidasActual();
+  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida');
+  const totalVencidoCxp=vencidasCxp.reduce((s,r)=>s+r.saldo,0);
+
+  const statsEl=document.getElementById('dashMantStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Ingresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(ingresos)}</div><div class="stat-sub">RD$ ${fmt(pendCobro)} pendiente por cobrar</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-receipt"></i></div><div class="stat-label">Egresos ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val">RD$ ${fmt(egresos)}</div><div class="stat-sub">Gastos pagados del período</div></div>
+    <div class="stat-card"><div class="stat-icon ${balance>=0?'si-green':'si-danger'}"><i class="ti ti-scale"></i></div><div class="stat-label">Balance ${mes?mes+' '+anioLbl:anioLbl}</div><div class="stat-val" style="color:${balance>=0?'var(--green-dark)':'var(--danger)'}">RD$ ${fmt(balance)}</div><div class="stat-sub">Ingresos − egresos del período</div></div>
+    <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-building-bank"></i></div><div class="stat-label">Fondo de Reserva</div><div class="stat-val">RD$ ${fmt(fondoTotal)}</div><div class="stat-sub">Acumulado histórico</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Cuotas Vencidas</div><div class="stat-val">${totalVencidasCxc}</div><div class="stat-sub">Cobros atrasados actuales</div></div>
+    <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-triangle"></i></div><div class="stat-label">CxP Vencido</div><div class="stat-val">RD$ ${fmt(totalVencidoCxp)}</div><div class="stat-sub">${vencidasCxp.length} factura(s)/gasto(s)</div></div>
+  `;
+
+  // Chart: tendencia de balance (ingresos - egresos) de los últimos 6 meses reales,
+  // independiente del filtro de arriba — siempre muestra lo más reciente.
+  const hoy=new Date();
+  const ultimos6=[];
+  for(let i=5;i>=0;i--){
+    const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
+    const m=MESES_ES[d.getMonth()], y=d.getFullYear();
+    const ing=cargosMantenimiento(m,y).filter(r=>r.estado==='Pagada').reduce((s,r)=>s+r.monto,0);
+    const eg=(PD().gastos||[]).filter(g=>{
+      if(!g.pagado) return false;
+      const iso=toISODate(g.fecha); if(!iso) return false;
+      const [gy,gm]=iso.split('-'); return parseInt(gy)===y && MESES_ES[parseInt(gm)-1]===m;
+    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    ultimos6.push({mes:m.slice(0,3),bal:ing-eg});
+  }
+  const maxAbs=Math.max(...ultimos6.map(x=>Math.abs(x.bal)),1);
+  document.getElementById('dashMantChart').innerHTML=ultimos6.map(x=>`
+    <div class="bar-col">
+      <div class="bar-val" style="color:${x.bal>=0?'var(--green-dark)':'var(--danger)'}">${fmt(x.bal)}</div>
+      <div class="bar-fill" style="height:${Math.max(4,Math.round((Math.abs(x.bal)/maxAbs)*100))}px;background:${x.bal>=0?'var(--green)':'var(--danger)'}"></div>
+      <div class="bar-lbl">${x.mes}</div>
+    </div>`).join('');
+
+  // Estado de cobros del período elegido (o del año completo si no hay mes).
+  const mesesAEvaluar=mes?[mes]:MESES_ES;
+  let pagadasN=0,pendientesN=0,vencidasN=0,montoPagado=0,montoPendiente=0,montoVencido=0;
+  mesesAEvaluar.forEach(m=>{
+    cargosMantenimiento(m,anio).forEach(r=>{
+      if(r.estado==='Pagada'){ pagadasN++; montoPagado+=r.monto; }
+      else if(r.estado==='Vencida'){ vencidasN++; montoVencido+=r.monto; }
+      else { pendientesN++; montoPendiente+=r.monto; }
+    });
+  });
+  document.getElementById('dashMantCuotasCount').textContent=pagadasN+pendientesN+vencidasN;
+  document.getElementById('dashMantCuotasList').innerHTML=`
+    <div class="alert-item"><div class="alert-dot ad-g"></div><div><div class="alert-text">${pagadasN} cuota${pagadasN!==1?'s':''} pagada${pagadasN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoPagado)}</div></div></div>
+    <div class="alert-item"><div class="alert-dot ad-y"></div><div><div class="alert-text">${pendientesN} cuota${pendientesN!==1?'s':''} pendiente${pendientesN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoPendiente)}</div></div></div>
+    <div class="alert-item"><div class="alert-dot ad-r"></div><div><div class="alert-text">${vencidasN} cuota${vencidasN!==1?'s':''} vencida${vencidasN!==1?'s':''}</div><div class="alert-time">RD$ ${fmt(montoVencido)}</div></div></div>
+  `;
+
+  document.getElementById('dashMantActList').innerHTML=STATE.log.slice(0,8).map(l=>`
     <div class="act-item"><div class="act-icon"><i class="ti ti-activity"></i></div><div class="act-text"><strong>${l.user}</strong> — ${l.act}</div><div class="act-time">${l.fecha} ${l.hora}</div></div>`).join('');
 }
 
