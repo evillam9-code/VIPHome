@@ -3239,6 +3239,17 @@ function renderDashboardMant(){
   const hoy=new Date();
   const eom=[31,(anio%4===0&&(anio%100!==0||anio%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
 
+  // Nómina también es dinero que sale de la empresa (ya descuenta del banco),
+  // así que cuenta como egreso igual que los gastos pagados.
+  function nominaPeriodo(mesFiltro,anioFiltro){
+    return (PD().nomina||[]).filter(n=>{
+      const iso=toISODate(n.fecha); if(!iso) return false;
+      const [y,m]=iso.split('-');
+      if(parseInt(y)!==anioFiltro) return false;
+      return mesFiltro ? MESES_ES[parseInt(m)-1]===mesFiltro : true;
+    }).reduce((s,n)=>s+(n.monto||0),0);
+  }
+
   // Ingresos/egresos/pendiente del período elegido (un mes, o el año completo).
   let ingresos,pendCobro,egresos;
   if(mes){
@@ -3249,7 +3260,7 @@ function renderDashboardMant(){
       if(!g.pagado) return false;
       const iso=toISODate(g.fecha); if(!iso) return false;
       const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo(mes,anio);
   } else {
     ingresos=totalCobradoAnio(anio);
     pendCobro=totalPendienteAnio(anio);
@@ -3257,18 +3268,19 @@ function renderDashboardMant(){
       if(!g.pagado) return false;
       const iso=toISODate(g.fecha); if(!iso) return false;
       return parseInt(iso.split('-')[0])===anio;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo('',anio);
   }
   const balance=ingresos-egresos;
 
-  // Fondo de reserva: todo lo cobrado menos todo lo gastado desde el inicio HASTA
-  // el corte del período elegido (fin del mes elegido, o fin del año si no hay mes)
-  // — por eso cambia según el filtro, igual que las demás tarjetas.
+  // Fondo de reserva: todo lo cobrado menos todo lo gastado (gastos + nómina)
+  // desde el inicio HASTA el corte del período elegido (fin del mes elegido, o
+  // fin del año si no hay mes) — por eso cambia según el filtro.
   const mesIdxCorte=mes?MESES_ES.indexOf(mes):11;
   const corte=`${anio}-${String(mesIdxCorte+1).padStart(2,'0')}-${String(eom[mesIdxCorte]).padStart(2,'0')}`;
   let cobradoTotal=0;
   (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{ if((p.fecha||'')<=corte) cobradoTotal+=(p.total||p.monto||0); }));
-  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado&&(toISODate(g.fecha)||'')<=corte).reduce((s,g)=>s+g.monto+g.itbis,0);
+  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado&&(toISODate(g.fecha)||'')<=corte).reduce((s,g)=>s+g.monto+g.itbis,0)
+    + (PD().nomina||[]).filter(n=>(toISODate(n.fecha)||'')<=corte).reduce((s,n)=>s+(n.monto||0),0);
   const fondoTotal=cobradoTotal-gastadoTotal;
 
   // Estado de cobros del período elegido (o del año completo si no hay mes) —
@@ -3331,7 +3343,7 @@ function renderDashboardMant(){
       if(!g.pagado) return false;
       const iso=toISODate(g.fecha); if(!iso) return false;
       const [gy,gm]=iso.split('-'); return parseInt(gy)===anio && MESES_ES[parseInt(gm)-1]===m;
-    }).reduce((s,g)=>s+g.monto+g.itbis,0);
+    }).reduce((s,g)=>s+g.monto+g.itbis,0) + nominaPeriodo(m,anio);
     meses.push({mes:m.slice(0,3),ing,eg});
   }
   const chartEl=document.getElementById('dashMantChart');
@@ -3374,6 +3386,9 @@ function renderDashboardMant(){
     const total=g.monto+g.itbis;
     if(g.pagado) porCategoria[cat].pagado+=total; else porCategoria[cat].pendiente+=total;
   });
+  // Nómina no tiene estado pendiente (se registra ya pagada), va como categoría aparte.
+  const nominaTotalPeriodo=nominaPeriodo(mes,anio);
+  if(nominaTotalPeriodo>0) porCategoria['Nómina']={pagado:nominaTotalPeriodo,pendiente:0};
   const cats=Object.entries(porCategoria).map(([nombre,v])=>({nombre,...v,total:v.pagado+v.pendiente})).sort((a,b)=>b.total-a.total);
   const maxCat=Math.max(...cats.map(c=>c.total),1);
   document.getElementById('dashMantGastosCat').innerHTML = cats.length ? cats.map(c=>`
