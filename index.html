@@ -3640,6 +3640,20 @@ function eliminarMovCajaAuto(cajaId){
   if(typeof renderCaja==='function') renderCaja('caja');
 }
 
+// Deshace en Banco+Caja todos los pagos de un registro (cxc, gasto o factura
+// manual) antes de eliminarlo por completo, para que no queden movimientos
+// automáticos huérfanos ni dinero "fantasma" en la cuenta bancaria.
+// signo=1 → eran cobros (entraron al banco, hay que restarlos al revertir).
+// signo=-1 → eran pagos a suplidor (salieron del banco, hay que devolverlos).
+function deshacerPagosDeRegistro(pagos,signo){
+  (pagos||[]).forEach(p=>{
+    const banco=(PD().bancos||[]).find(b=>b.id==p.banco);
+    const monto=p.total!=null?p.total:(p.monto||0);
+    if(banco) banco.saldo-=signo*monto;
+    eliminarMovCajaAuto(p.cajaId);
+  });
+}
+
 function renderCaja(tipo){
   const tbody=document.getElementById(tipo==='cajaChica'?'tbodyCajaChica':'tbodyCaja');
   if(!tbody) return;
@@ -4289,9 +4303,14 @@ function marcarPeriodoPersonalizado(tableId){
 
 function deleteRow(collection,index,tbodyId,rerender){
   if(!confirm('¿Está seguro de eliminar este registro?'))return;
+  if(collection==='gastos'){
+    const g=STATE.gastos[index];
+    if(g) deshacerPagosDeRegistro(g.pagos,-1);
+  }
   STATE[collection].splice(index,1);
   addLog('Eliminó registro en: '+collection);
   rerender();
+  if(collection==='gastos'&&typeof renderBancos==='function') renderBancos();
 }
 
 function addLog(act){
@@ -4992,7 +5011,13 @@ function saveCxcManual(){
 
 function deleteCxc(i){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
-  if(confirm('¿Eliminar esta CxC?')){ PD().cxc.splice(i,1); renderCxc(); }
+  const c=(PD().cxc||[])[i];
+  if(confirm('¿Eliminar esta CxC?')){
+    if(c) deshacerPagosDeRegistro(c.pagos||c.pagos_mensuales,1);
+    PD().cxc.splice(i,1);
+    renderCxc();
+    if(typeof renderBancos==='function') renderBancos();
+  }
 }
 function editCxc(i){
   // Simple: reuse manual modal prefilled
@@ -5303,12 +5328,17 @@ function saveCxpManual(){
 
 function deleteCxp(key){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
-  const {origen}=resolverCxp(key);
+  const {origen,ref}=resolverCxp(key);
   if(origen!=='manual'){alert('Este renglón viene de Gastos — elimínelo desde el módulo Gastos.');return;}
   const realId=Number(String(key).split(':')[1]);
   const idx=(PD().cxp||[]).findIndex(x=>x.id===realId);
   if(idx<0)return;
-  if(confirm('¿Eliminar esta factura de suplidor?')){ PD().cxp.splice(idx,1); renderCxp(); }
+  if(confirm('¿Eliminar esta factura de suplidor?')){
+    deshacerPagosDeRegistro(ref?.pagos,-1);
+    PD().cxp.splice(idx,1);
+    renderCxp();
+    if(typeof renderBancos==='function') renderBancos();
+  }
 }
 
 // ── Registrar pago (aplica igual a facturas manuales y a gastos pendientes) ──
