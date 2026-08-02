@@ -601,7 +601,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-status" onchange="applyTableFilters('tblVencidas')">
       <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
     </select>
-    <select class="filter f-mes" id="vencidasMes" onchange="applyTableFilters('tblVencidas')">
+    <select class="filter f-mes" id="vencidasMes" onchange="renderVencidas()">
       <option value="">Todos los meses</option>
       <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
       <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
@@ -704,7 +704,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-extra" id="cxpFiltroSuplidor" onchange="applyTableFilters('tblCxp')">
       <option value="">-- Todos los suplidores --</option>
     </select>
-    <select class="filter f-mes" onchange="applyTableFilters('tblCxp')">
+    <select class="filter f-mes" id="cxpFiltroMes" onchange="renderCxp()">
       <option value="">Todos los meses</option>
       <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
       <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
@@ -746,7 +746,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-status" onchange="applyTableFilters('tblCxpVencidas')">
       <option value="">Todos</option><option>Vencida</option><option>Por vencer</option>
     </select>
-    <select class="filter f-mes" onchange="applyTableFilters('tblCxpVencidas')">
+    <select class="filter f-mes" id="cxpVencidasMes" onchange="renderCxpVencidas()">
       <option value="">Todos los meses</option>
       <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
       <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
@@ -874,7 +874,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <select class="filter f-extra" id="nomFiltroEmpleado" onchange="applyTableFilters('tblNomina')">
       <option value="">-- Todos los empleados --</option>
     </select>
-    <select class="filter f-mes" onchange="applyTableFilters('tblNomina')">
+    <select class="filter f-mes" id="nominaFiltroMes" onchange="renderNomina()">
       <option value="">Todos los meses</option>
       <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
       <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
@@ -1136,7 +1136,11 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
     <div class="form-grid">
       <div class="fg"><label>Fecha</label><input id="mc_fecha_mov" type="date"/></div>
       <div class="fg"><label>Tipo</label><select id="mc_tipo_mov"><option>Entrada</option><option>Salida</option></select></div>
-      <div class="fg" style="grid-column:1/-1"><label>Concepto</label><input id="mc_concepto" placeholder="Ej: Compra de insumos de limpieza"/></div>
+      <div class="fg" style="grid-column:1/-1">
+        <label>Concepto</label>
+        <input id="mc_concepto" placeholder="Ej: Compra de insumos de limpieza"/>
+        <p id="mc_ajuste_hint" style="display:none;font-size:12px;color:var(--muted);margin-top:4px">Caja solo admite ajustes de cuadre — los cobros y pagos reales se registran automáticamente desde sus propios módulos. Explique el motivo del ajuste en Observaciones.</p>
+      </div>
       <div class="fg"><label>Monto RD$</label><input id="mc_monto_mov" placeholder="0.00" oninput="moneyInput(this)"/></div>
       <div class="fg"><label>Responsable</label><input id="mc_responsable" placeholder="Quién entrega/recibe"/></div>
     </div>
@@ -1200,7 +1204,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg" style="grid-column:1/-1"><label>Descripción del pago</label><input id="nm_desc"/></div>
       <div class="fg"><label>Fecha de Pago</label><input id="nm_fecha" type="date"/></div>
       <div class="fg"><label>Monto RD$</label><input id="nm_monto" type="number"/></div>
-      <div class="fg"><label>Banco de Pago</label><select id="nm_banco"><option>BANRESERVAS</option><option>BANCO POPULAR</option><option>EFECTIVO</option><option>CHEQUE</option><option>TRANSFERENCIA</option></select></div>
+      <div class="fg"><label>Cuenta Bancaria</label><select id="nm_banco"></select></div>
       <div class="fg"><label>Tipo de Pago</label><select id="nm_tipo"><option>Quincenal</option><option>Semanal</option><option>Mensual</option></select></div>
     </div>
     <div class="form-grid full"><div class="fg"><label>Observación</label><textarea id="nm_obs"></textarea></div></div>
@@ -3248,7 +3252,7 @@ function renderSuplidores(){
 
 function viewSuplidor(i){
   s=STATE.suplidores[i];
-  const gastos=STATE.gastos.filter((g,gi)=>gi<10);
+  const gastos=STATE.gastos.filter(g=>String(g.suplidor_id)===String(s.id));
   document.getElementById('detailTitle').textContent=s.nombre;
   document.getElementById('detailBody').innerHTML=`
     <div class="detail-grid">
@@ -3260,7 +3264,7 @@ function viewSuplidor(i){
     </div>
     <div class="form-section">Gastos asociados</div>
     <div class="tbl-wrap"><table><thead><tr><th>Descripción</th><th>Fecha</th><th>Monto RD$</th><th>Estado</th></tr></thead><tbody>
-    ${STATE.gastos.slice(0,8).map(g=>`<tr><td>${g.descripcion}</td><td>${g.fecha}</td><td>RD$ ${fmt(g.monto)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`).join('')}
+    ${gastos.length?gastos.map(g=>`<tr><td>${g.descripcion}</td><td>${g.fecha}</td><td>RD$ ${fmt(g.monto)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`).join(''):'<tr><td colspan="4" class="empty">Sin gastos asociados a este suplidor</td></tr>'}
     </tbody></table></div>`;
   openModal('modalDetail');
 }
@@ -3690,10 +3694,14 @@ function renderCaja(tipo){
 function newMovCaja(tipo){
   editingMovCajaIdx=null;
   document.getElementById('mc_tipo_caja').value=tipo;
-  document.getElementById('mMovCajaTit').textContent='Nuevo Movimiento';
+  const esCaja=tipo==='caja';
+  document.getElementById('mMovCajaTit').textContent=esCaja?'Nuevo Ajuste de Cuadre':'Nuevo Movimiento';
   document.getElementById('mc_fecha_mov').value=todayISO();
   document.getElementById('mc_tipo_mov').value='Entrada';
-  document.getElementById('mc_concepto').value='';
+  const conceptoEl=document.getElementById('mc_concepto');
+  conceptoEl.value=esCaja?'Ajuste de cuadre':'';
+  conceptoEl.readOnly=esCaja;
+  document.getElementById('mc_ajuste_hint').style.display=esCaja?'':'none';
   document.getElementById('mc_monto_mov').value='';
   document.getElementById('mc_responsable').value='';
   document.getElementById('mc_obs_mov').value='';
@@ -3703,12 +3711,20 @@ function newMovCaja(tipo){
 function editMovCaja(tipo,i){
   const m=(PD()[tipo]||[])[i];
   if(!m)return;
+  if(tipo==='caja'&&m.obs==='Automático'){
+    alert('Este movimiento se generó automáticamente desde un cobro o pago real. Para corregirlo, edite o revierta ese pago desde su módulo de origen (no se debe editar aquí directamente).');
+    return;
+  }
   editingMovCajaIdx=i;
   document.getElementById('mc_tipo_caja').value=tipo;
-  document.getElementById('mMovCajaTit').textContent='Editar Movimiento';
+  const esCaja=tipo==='caja';
+  document.getElementById('mMovCajaTit').textContent=esCaja?'Editar Ajuste de Cuadre':'Editar Movimiento';
   document.getElementById('mc_fecha_mov').value=(m.fecha||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)?m.fecha.replace(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,(_,d,mo,y)=>`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`):'';
   document.getElementById('mc_tipo_mov').value=m.tipo||'Entrada';
-  document.getElementById('mc_concepto').value=m.concepto||'';
+  const conceptoEl=document.getElementById('mc_concepto');
+  conceptoEl.value=esCaja?'Ajuste de cuadre':(m.concepto||'');
+  conceptoEl.readOnly=esCaja;
+  document.getElementById('mc_ajuste_hint').style.display=esCaja?'':'none';
   setMoneyVal('mc_monto_mov',m.monto||0);
   document.getElementById('mc_responsable').value=m.responsable||'';
   document.getElementById('mc_obs_mov').value=m.obs||'';
@@ -3717,7 +3733,7 @@ function editMovCaja(tipo,i){
 
 function saveMovCaja(){
   const tipo=document.getElementById('mc_tipo_caja').value;
-  const concepto=document.getElementById('mc_concepto').value.trim();
+  const concepto=tipo==='caja'?'Ajuste de cuadre':document.getElementById('mc_concepto').value.trim();
   if(!concepto){alert('Ingrese el concepto.');return;}
   const monto=getMoneyVal('mc_monto_mov');
   if(!monto){alert('Ingrese el monto.');return;}
@@ -3741,6 +3757,10 @@ function deleteMovCaja(tipo,i){
   if(!puedeHacer('eliminar')){alert('Sin permisos.');return;}
   const m=(PD()[tipo]||[])[i];
   if(!m)return;
+  if(tipo==='caja'&&m.obs==='Automático'){
+    alert('Este movimiento se generó automáticamente desde un cobro o pago real. Para eliminarlo, revierta ese pago desde su módulo de origen (no se debe borrar aquí directamente).');
+    return;
+  }
   if(confirm('¿Eliminar este movimiento?')){
     PD()[tipo].splice(i,1);
     addLog('Eliminó movimiento de '+(tipo==='cajaChica'?'Caja Chica':'Caja')+': '+m.concepto);
@@ -3889,7 +3909,7 @@ function renderNomina(){
       <td><strong>${n.nombre}</strong></td>
       <td>${n.descripcion||'—'}</td>
       <td><strong>RD$ ${fmt(n.monto)}</strong></td>
-      <td>${n.banco||'—'}</td>
+      <td>${(PD().bancos||[]).find(b=>b.id==n.banco)?.banco||n.banco||'—'}</td>
       <td>${n.tipo||'—'}</td>
       <td style="white-space:nowrap">
         <button class="btn-icon" title="Recibo" onclick="generarReciboNomina(${i})"><i class="ti ti-printer"></i></button>
@@ -3907,6 +3927,7 @@ function renderNomina(){
   }
 
   renderNominaResumen();
+  applyTableFilters('tblNomina');
 }
 
 // Dashboard de Nómina: total del año y desglose mes a mes para comparar.
@@ -3927,13 +3948,14 @@ function renderNominaResumen(){
     return {mes, cantidad:items.length, total};
   });
   const totalAnio=porMes.reduce((s,m)=>s+m.total,0);
-  const mesActual=MESES_ES[new Date().getMonth()];
-  const totalMesActual=porMes.find(m=>m.mes===mesActual)?.total||0;
+  const mesVal=document.getElementById('nominaFiltroMes')?.value||'';
+  const mesFiltrado=mesVal?MESES_ES[parseInt(mesVal)-1]:MESES_ES[new Date().getMonth()];
+  const totalMesFiltrado=porMes.find(m=>m.mes===mesFiltrado)?.total||0;
 
   const statsEl=document.getElementById('nominaStats');
   if(statsEl) statsEl.innerHTML=`
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total Nómina ${anio}</div><div class="stat-val">RD$ ${fmt(totalAnio)}</div><div class="stat-sub">Acumulado del año</div></div>
-    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${mesActual}</div><div class="stat-val">RD$ ${fmt(totalMesActual)}</div><div class="stat-sub">Mes actual</div></div>
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${mesFiltrado}</div><div class="stat-val">RD$ ${fmt(totalMesFiltrado)}</div><div class="stat-sub">${mesVal?'Mes filtrado':'Mes actual'}</div></div>
   `;
 
   tbody.innerHTML=porMes.map(m=>`<tr>
@@ -3991,7 +4013,10 @@ function newNomina(){
   document.getElementById('nm_desc').value='';
   document.getElementById('nm_fecha').value=todayISO();
   document.getElementById('nm_monto').value='';
-  document.getElementById('nm_banco').value='BANRESERVAS';
+  const bsel=document.getElementById('nm_banco');
+  const bancos=(PD().bancos||[]);
+  bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
+  if(bancos.length===1) bsel.value=bancos[0].id;
   document.getElementById('nm_tipo').value='Quincenal';
   document.getElementById('nm_obs').value='';
   openModal('modalNomina');
@@ -4004,14 +4029,34 @@ function editNomina(i){
   document.getElementById('nm_desc').value=n.descripcion||'';
   document.getElementById('nm_fecha').value=(n.fecha||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/)?n.fecha.replace(/^(\d{2})\/(\d{2})\/(\d{4})$/,'$3-$2-$1'):'';
   document.getElementById('nm_monto').value=n.monto;
-  if(n.banco) document.getElementById('nm_banco').value=n.banco;
+  const bsel=document.getElementById('nm_banco');
+  const bancos=(PD().bancos||[]);
+  bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
+  if(n.banco) bsel.value=n.banco;
   if(n.tipo) document.getElementById('nm_tipo').value=n.tipo;
   document.getElementById('nm_obs').value=n.obs||'';
   openModal('modalNomina');
 }
 
 function saveNomina(){
-  n={id: editingNominaIdx!==null ? STATE.nomina[editingNominaIdx].id : STATE.nomina.length+1, nombre:v('nm_nombre'),descripcion:v('nm_desc'),fecha:fechaES(v('nm_fecha'))||today(),monto:parseFloat(v('nm_monto'))||0,banco:v('nm_banco'),tipo:v('nm_tipo'),obs:v('nm_obs')};
+  const bancoId=v('nm_banco');
+  const monto=parseFloat(v('nm_monto'))||0;
+  if(!bancoId){alert('Seleccione una cuenta bancaria de pago.');return;}
+  if(!monto){alert('Ingrese el monto.');return;}
+  const banco=(PD().bancos||[]).find(b=>b.id==bancoId);
+  const anterior=editingNominaIdx!==null?STATE.nomina[editingNominaIdx]:null;
+  if(anterior){
+    // Deshace el efecto anterior sobre el banco (pudo ser otra cuenta u otro monto)
+    // antes de aplicar el nuevo, para no descuadrar si se edita.
+    const bancoAnterior=(PD().bancos||[]).find(b=>b.id==anterior.banco);
+    if(bancoAnterior) bancoAnterior.saldo+=(anterior.monto||0);
+  }
+  if(banco) banco.saldo-=monto;
+  n={id: editingNominaIdx!==null ? STATE.nomina[editingNominaIdx].id : STATE.nomina.length+1, nombre:v('nm_nombre'),descripcion:v('nm_desc'),fecha:fechaES(v('nm_fecha'))||today(),monto,banco:bancoId,tipo:v('nm_tipo'),obs:v('nm_obs')};
+  if(anterior) n.cajaId=anterior.cajaId;
+  if(n.cajaId) ajustarMovCajaAuto(n.cajaId,monto,v('nm_fecha'));
+  else n.cajaId=registrarMovCajaAuto('Salida','Pago nómina — '+n.nombre,monto,v('nm_fecha'),'');
+  if(typeof renderBancos==='function') renderBancos();
   if(editingNominaIdx!==null){
     STATE.nomina[editingNominaIdx]=n;
     addLog('Editó pago nómina: '+n.nombre+' RD$ '+fmt(n.monto));
@@ -4307,10 +4352,14 @@ function deleteRow(collection,index,tbodyId,rerender){
     const g=STATE.gastos[index];
     if(g) deshacerPagosDeRegistro(g.pagos,-1);
   }
+  if(collection==='nomina'){
+    const n=STATE.nomina[index];
+    if(n) deshacerPagosDeRegistro([n],-1);
+  }
   STATE[collection].splice(index,1);
   addLog('Eliminó registro en: '+collection);
   rerender();
-  if(collection==='gastos'&&typeof renderBancos==='function') renderBancos();
+  if((collection==='gastos'||collection==='nomina')&&typeof renderBancos==='function') renderBancos();
 }
 
 function addLog(act){
@@ -5121,15 +5170,18 @@ function buildCxpRows(){
 function renderCxp(){
   const tbody=document.getElementById('tbodyCxp');
   if(!tbody)return;
-  const rows=buildCxpRows().sort((a,b)=>(a.fecha_venc||'').localeCompare(b.fecha_venc||''));
+  const allRows=buildCxpRows().sort((a,b)=>(a.fecha_venc||'').localeCompare(b.fecha_venc||''));
 
   const supSel=document.getElementById('cxpFiltroSuplidor');
   if(supSel){
     const actual=supSel.value;
-    const nombres=[...new Set(rows.map(c=>c.suplidor).filter(Boolean))].sort();
+    const nombres=[...new Set(allRows.map(c=>c.suplidor).filter(Boolean))].sort();
     supSel.innerHTML='<option value="">-- Todos los suplidores --</option>'+nombres.map(n=>`<option value="${n}">${n}</option>`).join('');
     if(nombres.includes(actual)) supSel.value=actual;
   }
+
+  const mesVal=document.getElementById('cxpFiltroMes')?.value||'';
+  const rows = mesVal ? allRows.filter(c=>(c.fecha_venc||'').slice(5,7)===mesVal) : allRows;
 
   const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
   const canEdit=puedeHacer('editar'), canDel=puedeHacer('eliminar');
@@ -5150,28 +5202,33 @@ function renderCxp(){
     </td>
   </tr>`).join('') : '<tr><td colspan="9" class="empty"><i class="ti ti-file-invoice"></i><p>Sin facturas ni gastos pendientes de pago</p></td></tr>';
 
-  renderCxpStats(rows);
+  renderCxpStats(allRows,mesVal);
   renderCxpResumenMensual();
+  applyTableFilters('tblCxp');
 }
 
-function renderCxpStats(rows){
+// rows = TODAS las facturas/gastos pendientes (Total/Vencido/Por Vencer son
+// deuda actual, no se filtran por mes). mesVal, si viene del filtro de la
+// pantalla, solo cambia qué mes se usa para la tarjeta "Pagado en X".
+function renderCxpStats(rows,mesVal){
   const statsEl=document.getElementById('cxpStats');
   if(!statsEl)return;
-  const hoy=new Date(); const mesActual=hoy.getMonth(), anioActual=hoy.getFullYear();
+  const hoy=new Date(); const anioActual=hoy.getFullYear();
+  const mesIdx = mesVal ? parseInt(mesVal)-1 : hoy.getMonth();
   const totalPorPagar=rows.reduce((s,c)=>s+c.saldo,0);
   const vencidas=rows.filter(c=>c.estado==='Vencida');
   const porVencer=rows.filter(c=>c.estado==='Por vencer');
   const totalVencido=vencidas.reduce((s,c)=>s+c.saldo,0);
-  let pagadoEsteMes=0;
+  let pagadoMes=0;
   rows.forEach(c=>(c.pagos||[]).forEach(p=>{
     const iso=toISODate(p.fecha); if(!iso) return;
-    const [y,m]=iso.split('-'); if(parseInt(y)===anioActual&&parseInt(m)===mesActual+1) pagadoEsteMes+=(p.monto||0);
+    const [y,m]=iso.split('-'); if(parseInt(y)===anioActual&&parseInt(m)===mesIdx+1) pagadoMes+=(p.monto||0);
   }));
   statsEl.innerHTML=`
     <div class="stat-card"><div class="stat-icon si-blue"><i class="ti ti-report-money"></i></div><div class="stat-label">Total por Pagar</div><div class="stat-val">RD$ ${fmt(totalPorPagar)}</div><div class="stat-sub">${rows.filter(c=>c.estado!=='Pagada').length} factura(s) abiertas</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencido</div><div class="stat-val">RD$ ${fmt(totalVencido)}</div><div class="stat-sub">${vencidas.length} factura(s) vencidas</div></div>
     <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Por Vencer</div><div class="stat-val">${porVencer.length}</div><div class="stat-sub">Próximos 7 días</div></div>
-    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${MESES_ES[mesActual]}</div><div class="stat-val">RD$ ${fmt(pagadoEsteMes)}</div><div class="stat-sub">Mes actual</div></div>
+    <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-cash"></i></div><div class="stat-label">Pagado en ${MESES_ES[mesIdx]}</div><div class="stat-val">RD$ ${fmt(pagadoMes)}</div><div class="stat-sub">${mesVal?'Mes filtrado':'Mes actual'}</div></div>
   `;
 }
 
@@ -5217,17 +5274,21 @@ function contarVencidasCxpActual(){
 function renderCxpVencidas(){
   const tbody=document.getElementById('tbodyCxpVencidas');
   if(!tbody) return;
-  const rows=buildVencidasCxpRows().sort((a,b)=>{
+  const allRows=buildVencidasCxpRows().sort((a,b)=>{
     if(a.estado!==b.estado) return a.estado==='Vencida'?-1:1;
     return (a.fecha_venc||'').localeCompare(b.fecha_venc||'');
   });
+  // El contador/badge global siempre cuenta todo, sin importar el filtro de mes.
+  const totalVencidasGlobal=allRows.filter(r=>r.estado==='Vencida').length;
+  const countEl=document.getElementById('cxpVencidasCount');
+  if(countEl) countEl.textContent=totalVencidasGlobal;
+  const navBadge=document.getElementById('navCxpVencidasCount');
+  if(navBadge){ navBadge.textContent=totalVencidasGlobal; navBadge.style.display=totalVencidasGlobal?'':'none'; }
+
+  const mesVal=document.getElementById('cxpVencidasMes')?.value||'';
+  const rows = mesVal ? allRows.filter(r=>(r.fecha_venc||'').slice(5,7)===mesVal) : allRows;
   const vencidas=rows.filter(r=>r.estado==='Vencida');
   const porVencer=rows.filter(r=>r.estado==='Por vencer');
-
-  const countEl=document.getElementById('cxpVencidasCount');
-  if(countEl) countEl.textContent=vencidas.length;
-  const navBadge=document.getElementById('navCxpVencidasCount');
-  if(navBadge){ navBadge.textContent=vencidas.length; navBadge.style.display=vencidas.length?'':'none'; }
 
   const statsEl=document.getElementById('cxpVencidasStats');
   if(statsEl){
@@ -5261,6 +5322,7 @@ function renderCxpVencidas(){
       <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
     </tr>`;
   }).join('');
+  applyTableFilters('tblCxpVencidas');
 }
 
 function newCxpManual(){
@@ -7700,23 +7762,28 @@ function contarVencidasActual(){
 function renderVencidas(){
   const tbody = document.getElementById('tbodyVencidas');
   if(!tbody) return;
-  const rows = buildVencidasRows().sort((a,b)=>{
+  const allRows = buildVencidasRows().sort((a,b)=>{
     if(a.estado!==b.estado) return a.estado==='Vencida'?-1:1;
     return (b.diasAtraso||0)-(a.diasAtraso||0);
   });
+  // El contador/badge global de vencidas (menú lateral y aviso) siempre cuenta
+  // TODO, sin importar el filtro de mes de esta pantalla.
+  const totalVencidasGlobal=allRows.filter(r=>r.estado==='Vencida').length;
+  const countEl=document.getElementById('vencidasCount');
+  if(countEl) countEl.textContent=totalVencidasGlobal;
+  const navBadge=document.getElementById('navVencidasCount');
+  if(navBadge){ navBadge.textContent=totalVencidasGlobal; navBadge.style.display=totalVencidasGlobal?'':'none'; }
+
+  const mesVal=document.getElementById('vencidasMes')?.value||'';
+  const rows = mesVal ? allRows.filter(r=>(toISODate(r.proximoVenc)||'').slice(5,7)===mesVal) : allRows;
   const vencidas=rows.filter(r=>r.estado==='Vencida');
   const porVencer=rows.filter(r=>r.estado==='Por vencer');
-
-  const countEl=document.getElementById('vencidasCount');
-  if(countEl) countEl.textContent=vencidas.length;
-  const navBadge=document.getElementById('navVencidasCount');
-  if(navBadge){ navBadge.textContent=vencidas.length; navBadge.style.display=vencidas.length?'':'none'; }
 
   const statsEl=document.getElementById('vencidasStats');
   if(statsEl){
     const totalVencido=vencidas.reduce((s,r)=>s+(r.saldo||0),0);
     const totalPorVencer=porVencer.reduce((s,r)=>s+(r.saldo||0),0);
-    const sym=rows[0]?.sym||'RD$';
+    const sym=rows[0]?.sym||allRows[0]?.sym||'RD$';
     statsEl.innerHTML=`
       <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-alert-circle"></i></div><div class="stat-label">Vencidas</div><div class="stat-val">${vencidas.length}</div><div class="stat-sub">${sym} ${fmt(totalVencido)}</div></div>
       <div class="stat-card"><div class="stat-icon si-warn"><i class="ti ti-clock"></i></div><div class="stat-label">Por vencer</div><div class="stat-val">${porVencer.length}</div><div class="stat-sub">${sym} ${fmt(totalPorVencer)}</div></div>
@@ -7747,6 +7814,7 @@ function renderVencidas(){
       <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
     </tr>`;
   }).join('');
+  applyTableFilters('tblVencidas');
 }
 
 // ═══ REMOVE REF FROM CLIENTES TABLE ═══
