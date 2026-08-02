@@ -429,6 +429,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
             <option value="Octubre">Octubre</option><option value="Noviembre">Noviembre</option><option value="Diciembre">Diciembre</option>
           </select>
           <select class="filter" id="dashMantAnio" onchange="renderDashboardMant()"></select>
+          <button class="btn btn-outline" onclick="generarInformeMensual()"><i class="ti ti-printer"></i> Informe Mensual</button>
         </div>
         <div class="stat-grid" id="dashMantStats"></div>
         <div class="card dm-panel" style="margin-top:1rem">
@@ -3401,6 +3402,125 @@ function renderDashboardMant(){
     </div>`).join('') : '<p style="color:var(--muted);font-size:13px">Sin gastos registrados en este período.</p>';
 }
 
+// Informe mensual imprimible de un proyecto de Mantenimiento: resumen general
+// al inicio (mismos números que el dashboard, para ese mes puntual) y el
+// detalle completo de cobros, gastos y nómina del mes. Usa el mes/año del
+// filtro del dashboard; si estaba en "Todo el año" usa el mes actual real,
+// porque el informe es siempre de UN mes.
+function generarInformeMensual(){
+  const mesSel=document.getElementById('dashMantMes');
+  const anioSel=document.getElementById('dashMantAnio');
+  const mes=(mesSel&&mesSel.value)||MESES_ES[new Date().getMonth()];
+  const anio=anioSel?parseInt(anioSel.value):new Date().getFullYear();
+
+  const cargos=cargosMantenimiento(mes,anio);
+  const pagadas=cargos.filter(r=>r.estado==='Pagada');
+  const pendientes=cargos.filter(r=>r.estado!=='Pagada');
+  const ingresos=pagadas.reduce((s,r)=>s+r.monto,0);
+  const pendCobro=pendientes.reduce((s,r)=>s+r.monto,0);
+
+  const gastosMes=(PD().gastos||[]).filter(g=>{
+    const iso=toISODate(g.fecha); if(!iso) return false;
+    const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
+  });
+  const egresosGastos=gastosMes.filter(g=>g.pagado).reduce((s,g)=>s+g.monto+g.itbis,0);
+
+  const nominaMes=(PD().nomina||[]).filter(n=>{
+    const iso=toISODate(n.fecha); if(!iso) return false;
+    const [y,m]=iso.split('-'); return parseInt(y)===anio && MESES_ES[parseInt(m)-1]===mes;
+  });
+  const egresosNomina=nominaMes.reduce((s,n)=>s+(n.monto||0),0);
+  const egresos=egresosGastos+egresosNomina;
+  const balance=ingresos-egresos;
+
+  const eom=[31,(anio%4===0&&(anio%100!==0||anio%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
+  const mesIdx=MESES_ES.indexOf(mes);
+  const corte=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(eom[mesIdx]).padStart(2,'0')}`;
+  let cobradoTotal=0;
+  (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{ if((p.fecha||'')<=corte) cobradoTotal+=(p.total||p.monto||0); }));
+  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado&&(toISODate(g.fecha)||'')<=corte).reduce((s,g)=>s+g.monto+g.itbis,0)
+    + (PD().nomina||[]).filter(n=>(toISODate(n.fecha)||'')<=corte).reduce((s,n)=>s+(n.monto||0),0);
+  const fondoTotal=cobradoTotal-gastadoTotal;
+
+  const mm=String(mesIdx+1).padStart(2,'0');
+  const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida').filter(r=>(r.fecha_venc||'').slice(0,4)===String(anio)&&(r.fecha_venc||'').slice(5,7)===mm);
+  const totalVencidoCxp=vencidasCxp.reduce((s,r)=>s+r.saldo,0);
+  const vencidasCxc=cargos.filter(r=>r.estado==='Vencida');
+
+  const proj=currentProject?currentProject.name:'VIP Home';
+  const usuario=(USUARIOS.find(u=>u.user===currentUser)?.nombre)||currentUser||'admin';
+  const fechaGen=new Date().toLocaleDateString('es-DO',{day:'2-digit',month:'long',year:'numeric'});
+  const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
+
+  const filaCargo=r=>`<tr><td>${r.apt_no}</td><td>${r.cliente||'—'}</td><td>${r.concepto}</td><td>RD$ ${fmt(r.monto)}</td><td><span class="badge ${st[r.estado]||'b-gray'}">${r.estado}</span></td></tr>`;
+  const filaGasto=g=>`<tr><td>${g.fecha}</td><td>${(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—'}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`;
+  const filaNomina=n=>`<tr><td>${n.fecha}</td><td>${n.nombre}</td><td>${n.descripcion||'—'}</td><td>RD$ ${fmt(n.monto)}</td></tr>`;
+
+  const win=window.open('','_blank','width=1000,height=700');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Informe Mensual — ${mes} ${anio} — ${proj}</title>
+    <style>
+      body{font-family:'Segoe UI',sans-serif;margin:30px;color:#1b2a3b;font-size:12px;}
+      .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;border-bottom:2px solid #6ab254;padding-bottom:12px;}
+      .header img{height:48px;width:auto;}
+      .header-right{text-align:right;}
+      .header-right h1{font-size:18px;font-weight:700;color:#1b2a3b;margin:0;}
+      .header-right p{font-size:12px;color:#8a9bb0;margin:2px 0;}
+      .meta{display:flex;justify-content:space-between;font-size:11px;color:#8a9bb0;margin-bottom:18px;}
+      h2.sec{font-size:14px;color:#1b2a3b;border-left:4px solid #6ab254;padding-left:8px;margin:24px 0 10px;}
+      .resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px;}
+      .rc{border:1px solid #e8ecf0;border-radius:8px;padding:10px 12px;}
+      .rc-lbl{font-size:11px;color:#8a9bb0;} .rc-val{font-size:16px;font-weight:700;margin-top:2px;}
+      table{width:100%;border-collapse:collapse;margin-top:6px;}
+      th{background:#1b2a3b;color:#fff;padding:7px 9px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;}
+      td{padding:6px 9px;border-bottom:1px solid #e8ecf0;font-size:11px;}
+      tr:nth-child(even) td{background:#f8f9fb;}
+      .badge{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+      .b-green{background:#e6f7ea;color:#1a7d3a;} .b-yellow{background:#fdf3e2;color:#a06a08;} .b-red{background:#fbe1e1;color:#b91c1c;} .b-blue{background:#e6f1fb;color:#185fa5;} .b-gray{background:#eef1f4;color:#5b6b7c;}
+      .footer{margin-top:24px;font-size:10px;color:#b0bcc8;text-align:center;border-top:1px solid #e8ecf0;padding-top:8px;}
+      @media print{@page{margin:1.5cm;}button{display:none!important;}}
+    </style>
+  </head><body>
+  <div class="header">
+    <img src="${LOGO_DATA}" alt="VIP Home"/>
+    <div class="header-right">
+      <h1>Informe Mensual — ${mes} ${anio}</h1>
+      <p>${proj} — VIP Home Inmobiliaria SRL</p>
+      <p>Calle Penetración 1 esq. c/11, Urb. Thomén · Santiago, RD</p>
+    </div>
+  </div>
+  <div class="meta"><span>Generado por: <strong>${usuario}</strong></span><span>Fecha de generación: ${fechaGen}</span></div>
+  <button onclick="window.print()" style="background:#6ab254;color:#fff;border:none;padding:8px 20px;border-radius:6px;cursor:pointer;margin-bottom:10px;font-size:13px;">🖨️ Imprimir / Guardar PDF</button>
+
+  <h2 class="sec">Resumen General</h2>
+  <div class="resumen">
+    <div class="rc"><div class="rc-lbl">Ingresos del mes</div><div class="rc-val" style="color:#1a7d3a">RD$ ${fmt(ingresos)}</div></div>
+    <div class="rc"><div class="rc-lbl">Egresos del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(egresos)}</div></div>
+    <div class="rc"><div class="rc-lbl">Balance del mes</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
+    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${mes})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
+    <div class="rc"><div class="rc-lbl">Cuotas Vencidas del mes</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
+    <div class="rc"><div class="rc-lbl">CxP Vencido del mes</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(totalVencidoCxp)}</div></div>
+  </div>
+  <p style="font-size:11px;color:#8a9bb0">Pendiente por cobrar del mes: RD$ ${fmt(pendCobro)} · Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)}</p>
+
+  <h2 class="sec">Detalle de Cobros (${cargos.length})</h2>
+  <table><thead><tr><th>Unidad</th><th>Cliente</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr></thead>
+  <tbody>${cargos.length?cargos.map(filaCargo).join(''):'<tr><td colspan="5">Sin cargos configurados este mes.</td></tr>'}</tbody></table>
+
+  <h2 class="sec">Detalle de Gastos (${gastosMes.length})</h2>
+  <table><thead><tr><th>Fecha</th><th>Suplidor</th><th>Descripción</th><th>Total</th><th>Estado</th></tr></thead>
+  <tbody>${gastosMes.length?gastosMes.map(filaGasto).join(''):'<tr><td colspan="5">Sin gastos registrados este mes.</td></tr>'}</tbody></table>
+
+  <h2 class="sec">Detalle de Nómina (${nominaMes.length})</h2>
+  <table><thead><tr><th>Fecha</th><th>Beneficiario</th><th>Descripción</th><th>Monto</th></tr></thead>
+  <tbody>${nominaMes.length?nominaMes.map(filaNomina).join(''):'<tr><td colspan="4">Sin pagos de nómina este mes.</td></tr>'}</tbody></table>
+
+  <div class="footer">© ${new Date().getFullYear()} VIP Home Inmobiliaria SRL — ${proj} — Informe generado por ${usuario} el ${fechaGen}</div>
+  <script>setTimeout(()=>window.print(),800);<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 function viewCliente(i){
   const c=STATE.clientes[i];
   const fins=STATE.financiamientos.filter(f=>f.cliente===c.cedula);
@@ -5381,6 +5501,51 @@ function resolverCxp(key){
   return {origen:'manual', ref:(PD().cxp||[]).find(x=>x.id===id)};
 }
 
+// Arma los datos de una fila de CxP (factura manual o gasto) para enviarla al
+// suplidor por WhatsApp o correo — unifica los nombres de campo distintos entre
+// ambos orígenes (concepto/descripcion, factura/numncf, suplidor/suplidor_id).
+function datosFacturaParaEnvio(key){
+  const {origen,ref:c}=resolverCxp(key);
+  if(!c) return null;
+  const supNombre = origen==='manual' ? (c.suplidor||'') : ((PD().suplidores||[]).find(s=>String(s.id)===String(c.suplidor_id))?.nombre||'');
+  const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
+  return {
+    sup, supNombre,
+    factura: c.factura||c.numncf||'—',
+    concepto: c.concepto||c.descripcion||'—',
+    total: cxpTotal(c),
+    saldo: cxpSaldo(c),
+    venc: c.fecha_venc||toISODate(c.fecha)||'—'
+  };
+}
+
+function enviarFacturaWA(key){
+  const d=datosFacturaParaEnvio(key);
+  if(!d){alert('No se encontró el registro.');return;}
+  if(!d.sup||!d.sup.tel){alert('Este suplidor no tiene teléfono registrado. Agréguelo en el módulo Suplidores.');return;}
+  const proj=currentProject?currentProject.name:'VIP Home';
+  const msg=`Estimado(a) ${d.supNombre}, le enviamos el detalle de su factura de *${proj}*:\n\n`+
+    `Factura: ${d.factura}\nConcepto: ${d.concepto}\nTotal: RD$ ${fmt(d.total)}\nSaldo pendiente: RD$ ${fmt(d.saldo)}\nVencimiento: ${d.venc}\n\n`+
+    `Cualquier duda, quedamos atentos. Gracias.`;
+  const clean=d.sup.tel.replace(/\D/g,'');
+  window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// Correo real no se puede enviar desde una página HTML sin servidor — mailto:
+// abre el cliente de correo del usuario con el asunto y cuerpo ya redactados,
+// para que él mismo lo revise y presione enviar.
+function enviarFacturaEmail(key){
+  const d=datosFacturaParaEnvio(key);
+  if(!d){alert('No se encontró el registro.');return;}
+  if(!d.sup||!d.sup.email){alert('Este suplidor no tiene correo registrado. Agréguelo en el módulo Suplidores.');return;}
+  const proj=currentProject?currentProject.name:'VIP Home';
+  const asunto=`Factura ${d.factura} — ${proj}`;
+  const cuerpo=`Estimado(a) ${d.supNombre},\n\nLe enviamos el detalle de su factura:\n\n`+
+    `Proyecto: ${proj}\nFactura: ${d.factura}\nConcepto: ${d.concepto}\nTotal: RD$ ${fmt(d.total)}\nSaldo pendiente: RD$ ${fmt(d.saldo)}\nVencimiento: ${d.venc}\n\n`+
+    `Cualquier duda, quedamos atentos.\n\nSaludos.`;
+  window.location.href=`mailto:${d.sup.email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+}
+
 // Tras registrar o revertir un pago formal, sincroniza el checkbox "Pagado"
 // con la realidad de los pagos acumulados (así Gastos y CxP siempre coinciden).
 function sincronizarPagadoCxp(ref){ ref.pagado = cxpSaldoBruto(ref)<=0.009; }
@@ -5435,6 +5600,8 @@ function renderCxp(){
     <td style="white-space:nowrap">
       ${canEdit&&c.estado!=='Pagada'?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${c.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
       <button class="btn-icon" title="Historial de pagos" onclick="verHistorialCxp('${c.key}')"><i class="ti ti-history"></i></button>
+      <button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarFacturaWA('${c.key}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>
+      <button class="btn-icon" title="Enviar por correo" onclick="enviarFacturaEmail('${c.key}')"><i class="ti ti-mail"></i></button>
       ${canEdit&&c.key.startsWith('manual:')?`<button class="btn-icon" title="Editar factura" onclick="editCxpManual('${c.key}')"><i class="ti ti-edit"></i></button>`:''}
       ${canDel&&c.key.startsWith('manual:')?`<button class="btn-icon" title="Eliminar" style="color:var(--danger)" onclick="deleteCxp('${c.key}')"><i class="ti ti-trash"></i></button>`:''}
     </td>
@@ -5548,7 +5715,8 @@ function renderCxpVencidas(){
     const supNombre=r.suplidor||(PD().suplidores||[]).find(s=>String(s.id)===String(r.suplidor_id))?.nombre||'—';
     const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
     const pagarBtn = canEdit?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${r.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'';
-    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${sup.tel}','${supNombre.replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
+    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarFacturaWA('${r.key}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
+    const mailBtn = sup&&sup.email?`<button class="btn-icon" title="Enviar por correo" onclick="enviarFacturaEmail('${r.key}')"><i class="ti ti-mail"></i></button>`:'';
     return `<tr data-fecha="${toISODate(r.fecha_venc)}">
       <td><strong>${r.factura||'—'}</strong></td>
       <td>${supNombre}</td>
@@ -5557,7 +5725,7 @@ function renderCxpVencidas(){
       <td style="color:var(--danger)"><strong>RD$ ${fmt(r.saldo)}</strong></td>
       <td><small>${r.fecha_venc||'—'}</small></td>
       <td><span class="badge ${st[r.estado]}">${r.estado}</span></td>
-      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
+      <td style="white-space:nowrap">${pagarBtn}${waBtn}${mailBtn}</td>
     </tr>`;
   }).join('');
   applyTableFilters('tblCxpVencidas');
