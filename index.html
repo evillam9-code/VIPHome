@@ -1135,6 +1135,21 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
   <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalSuplidor')">Cancelar</button><button class="btn btn-primary" onclick="saveSuplidor()"><i class="ti ti-check"></i> Guardar</button></div></div>
 </div>
 
+<!-- Editor de mensaje antes de enviar por WhatsApp o correo: los datos ya vienen
+     rellenados, pero se pueden editar libremente antes de confirmar el envío. -->
+<div class="modal-bg" id="modalEnviarMensaje">
+  <div class="modal" style="max-width:520px"><div class="modal-head"><h2 id="em_titulo">Enviar mensaje</h2><button class="modal-close" onclick="closeModal('modalEnviarMensaje')">×</button></div>
+  <div class="modal-body">
+    <div class="form-grid full" id="em_asunto_wrap">
+      <div class="fg"><label>Asunto</label><input id="em_asunto"/></div>
+    </div>
+    <div class="form-grid full">
+      <div class="fg"><label>Mensaje</label><textarea id="em_cuerpo" rows="10"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalEnviarMensaje')">Cancelar</button><button class="btn btn-primary" id="em_btn_confirmar" onclick="confirmarEnvioMensaje()"><i class="ti ti-send"></i> Enviar</button></div></div>
+</div>
+
 <!-- Informe Mensual: solo pide mes/año, el reporte se arma e imprime aparte -->
 <div class="modal-bg" id="modalInformeMensual">
   <div class="modal" style="max-width:380px"><div class="modal-head"><h2>Informe Mensual</h2><button class="modal-close" onclick="closeModal('modalInformeMensual')">×</button></div>
@@ -5563,6 +5578,39 @@ function emailClientePorDoc(doc){
   return cli?.email||'';
 }
 
+// Guarda a quién/por qué canal se va a enviar mientras el usuario edita el
+// mensaje en el modal; confirmarEnvioMensaje() lo usa al presionar "Enviar".
+let envioPendiente=null;
+
+// Abre el editor de mensaje con el texto ya armado (asunto solo aplica a
+// correo). El usuario puede cambiar cualquier cosa antes de confirmar el envío.
+function abrirEditorEnvio(canal,destino,asunto,cuerpo){
+  envioPendiente={canal,destino};
+  document.getElementById('em_titulo').textContent = canal==='wa' ? 'Enviar por WhatsApp' : 'Enviar por correo';
+  document.getElementById('em_asunto_wrap').style.display = canal==='email' ? '' : 'none';
+  document.getElementById('em_asunto').value=asunto||'';
+  document.getElementById('em_cuerpo').value=cuerpo;
+  document.getElementById('em_btn_confirmar').innerHTML = canal==='wa'
+    ? '<i class="ti ti-brand-whatsapp"></i> Enviar por WhatsApp'
+    : '<i class="ti ti-mail"></i> Abrir en mi correo';
+  openModal('modalEnviarMensaje');
+}
+
+// Usa lo que haya en el textarea AL MOMENTO de confirmar — si el usuario lo
+// editó, se envía su versión; si no lo tocó, se envía el texto original.
+function confirmarEnvioMensaje(){
+  if(!envioPendiente) return;
+  const cuerpo=document.getElementById('em_cuerpo').value;
+  if(envioPendiente.canal==='wa'){
+    window.open(`https://wa.me/${envioPendiente.destino}?text=${encodeURIComponent(cuerpo)}`,'_blank');
+  } else {
+    const asunto=document.getElementById('em_asunto').value;
+    window.location.href=`mailto:${envioPendiente.destino}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  }
+  closeModal('modalEnviarMensaje');
+  envioPendiente=null;
+}
+
 function enviarVentaWA(i){
   const v=(PD().ventas||[])[i];
   if(!v){alert('No se encontró la venta.');return;}
@@ -5572,7 +5620,7 @@ function enviarVentaWA(i){
   const proj=currentProject?currentProject.name:'VIP Home';
   const msg=`Estimado(a) ${v.cliente_nombre||''}, le compartimos el detalle de su compra en *${proj}*:\n\n`+
     `No. Operación: ${v.no||'—'}\nApartamento: ${v.apt_no||'—'}\nPrecio: US$ ${fmt(total)}\nPagado: US$ ${fmt(pagado)}\nSaldo: US$ ${fmt(saldo)}\nEstado: ${v.estado||'—'}\n\nCualquier duda, quedamos atentos. Gracias.`;
-  window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
+  abrirEditorEnvio('wa',tel.replace(/\D/g,''),'',msg);
 }
 
 // Correo real no se puede enviar desde una página HTML sin servidor — mailto:
@@ -5588,7 +5636,7 @@ function enviarVentaEmail(i){
   const asunto=`Detalle de su compra — ${proj}`;
   const cuerpo=`Estimado(a) ${v.cliente_nombre||''},\n\nLe compartimos el detalle de su compra:\n\n`+
     `Proyecto: ${proj}\nNo. Operación: ${v.no||'—'}\nApartamento: ${v.apt_no||'—'}\nPrecio: US$ ${fmt(total)}\nPagado: US$ ${fmt(pagado)}\nSaldo: US$ ${fmt(saldo)}\nEstado: ${v.estado||'—'}\n\nCualquier duda, quedamos atentos.\n\nSaludos.`;
-  window.location.href=`mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  abrirEditorEnvio('email',email,asunto,cuerpo);
 }
 
 function enviarCuotaWA(cxcIdx){
@@ -5600,7 +5648,7 @@ function enviarCuotaWA(cxcIdx){
   const proj=currentProject?currentProject.name:'VIP Home';
   const msg=`Estimado(a) ${c.cliente||''}, le compartimos el detalle de su cuenta en *${proj}*:\n\n`+
     `Operación: ${c.op||'—'}\nConcepto: ${c.concepto||'—'}\nCuota: US$ ${fmt(c.cuota||0)}\nSaldo pendiente: US$ ${fmt(saldo)}\nPróximo vencimiento: ${c.fecha_venc||'—'}\n\nCualquier duda, quedamos atentos. Gracias.`;
-  window.open(`https://wa.me/${tel.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`,'_blank');
+  abrirEditorEnvio('wa',tel.replace(/\D/g,''),'',msg);
 }
 
 function enviarCuotaEmail(cxcIdx){
@@ -5613,7 +5661,7 @@ function enviarCuotaEmail(cxcIdx){
   const asunto=`Detalle de su cuenta — ${proj}`;
   const cuerpo=`Estimado(a) ${c.cliente||''},\n\nLe compartimos el detalle de su cuenta:\n\n`+
     `Proyecto: ${proj}\nOperación: ${c.op||'—'}\nConcepto: ${c.concepto||'—'}\nCuota: US$ ${fmt(c.cuota||0)}\nSaldo pendiente: US$ ${fmt(saldo)}\nPróximo vencimiento: ${c.fecha_venc||'—'}\n\nCualquier duda, quedamos atentos.\n\nSaludos.`;
-  window.location.href=`mailto:${email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  abrirEditorEnvio('email',email,asunto,cuerpo);
 }
 
 // Tras registrar o revertir un pago formal, sincroniza el checkbox "Pagado"
