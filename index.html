@@ -875,7 +875,12 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 
 <!-- ── CAJA ── -->
 <div id="page-caja" class="page">
+  <p style="font-size:12px;color:var(--muted);margin:0 0 .75rem">Caja consolida automáticamente los cobros y pagos reales de todos los módulos (no gastos ni cobros sueltos) — el saldo debe coincidir con la suma de las cuentas bancarias de abajo.</p>
   <div class="stat-grid" id="cajaStats"></div>
+  <div class="card" style="margin-top:1rem">
+    <div class="card-title">Cuentas Bancarias</div>
+    <div id="cajaBancosResumen"></div>
+  </div>
   <div class="bar" style="margin-top:1rem">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" class="f-search" placeholder="Buscar movimiento..." oninput="applyTableFilters('tblCaja')"/></div>
     <input type="date" class="filter f-desde" onchange="marcarPeriodoPersonalizado('tblCaja')" title="Desde"/><span class="filter-date-sep">–</span>
@@ -884,7 +889,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <option value="">Período</option><option value="hoy">Hoy</option><option value="semana">Esta semana</option>
       <option value="mes">Este mes</option><option value="anio">Este año</option><option value="custom" hidden>Personalizado</option>
     </select>
-    <button class="btn btn-primary" onclick="newMovCaja('caja')"><i class="ti ti-plus"></i> Nuevo Movimiento</button>
+    <button class="btn btn-primary" onclick="newMovCaja('caja')"><i class="ti ti-plus"></i> Nuevo Ajuste de Cuadre</button>
     <button class="btn btn-outline" onclick="abrirCuadreCaja('caja')"><i class="ti ti-scale"></i> Cuadrar</button>
     <button class="btn btn-outline" onclick="exportTable('tblCaja','Caja')"><i class="ti ti-download"></i> Exportar</button>
   </div>
@@ -4066,6 +4071,26 @@ function renderCaja(tipo){
     <div class="stat-card"><div class="stat-icon si-green"><i class="ti ti-arrow-down"></i></div><div class="stat-label">Total Entradas</div><div class="stat-val" style="color:var(--green-dark)">RD$ ${fmt(totalEntradas)}</div></div>
     <div class="stat-card"><div class="stat-icon si-danger"><i class="ti ti-arrow-up"></i></div><div class="stat-label">Total Salidas</div><div class="stat-val" style="color:var(--danger)">RD$ ${fmt(totalSalidas)}</div></div>
   `;
+
+  // Solo Caja (no Caja Chica) muestra las cuentas bancarias reales, para que se
+  // pueda comparar de un vistazo el saldo de Caja contra lo que dice el banco.
+  const bancosResumenEl=document.getElementById('cajaBancosResumen');
+  if(tipo==='caja'&&bancosResumenEl){
+    const bancos=PD().bancos||[];
+    const totalBancos=bancos.reduce((s,b)=>s+(b.saldo||0),0);
+    const diferencia=saldo-totalBancos;
+    bancosResumenEl.innerHTML = bancos.length ? `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">
+        ${bancos.map(b=>`<div class="rc" style="border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;color:var(--muted)">${b.banco} · ${b.cuenta}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--navy)">${b.moneda} ${fmt(b.saldo)}</div>
+        </div>`).join('')}
+      </div>
+      <p style="font-size:12px;margin-top:10px;color:${Math.abs(diferencia)<0.01?'var(--green-dark)':'var(--danger)'}">
+        ${Math.abs(diferencia)<0.01?'✅ Caja cuadra exacto con las cuentas bancarias.':'⚠️ Diferencia entre Caja y bancos: RD$ '+fmt(diferencia)}
+      </p>` : '<p style="color:var(--muted);font-size:13px">No hay cuentas bancarias registradas todavía.</p>';
+  }
+
   const canEdit=puedeHacer('editar'), canDel=puedeHacer('eliminar');
   let acum=0;
   const conAcum=movs.map(m=>{ acum+=(m.tipo==='Entrada'?m.monto:-m.monto); return {...m, saldoAcum:acum}; });
@@ -8226,6 +8251,10 @@ function buildVencidasRowsMant(){
       rows.push({
         ref:r.apt_no, cliente:r.cliente, clienteDoc:r.clienteDoc, concepto:r.concepto+' — '+mes+' '+anio,
         monto:r.monto, saldo:r.monto, proximoVenc:mes+' '+anio, estado,
+        // proximoVenc de mantenimiento es texto ("Marzo 2026"), no una fecha real,
+        // así que toISODate() no puede leerlo — vencISO es la fecha real para
+        // filtrar por mes y para el atributo data-fecha de la tabla.
+        vencISO:`${anio}-${String(d.getMonth()+1).padStart(2,'0')}-01`,
         diasAtraso:0, diasParaVencer:0, cxc_idx:r.cxc_idx, telWA:r.clienteWA, esMant:true, sym:'RD$',
         apt_no:r.apt_no, concepto_base:r.concepto, mes, anio
       });
@@ -8266,7 +8295,7 @@ function renderVencidas(){
   if(navBadge){ navBadge.textContent=totalVencidasGlobal; navBadge.style.display=totalVencidasGlobal?'':'none'; }
 
   const mesVal=document.getElementById('vencidasMes')?.value||'';
-  const rows = mesVal ? allRows.filter(r=>(toISODate(r.proximoVenc)||'').slice(5,7)===mesVal) : allRows;
+  const rows = mesVal ? allRows.filter(r=>(r.vencISO||toISODate(r.proximoVenc)||'').slice(5,7)===mesVal) : allRows;
   const vencidas=rows.filter(r=>r.estado==='Vencida');
   const porVencer=rows.filter(r=>r.estado==='Por vencer');
 
@@ -8295,7 +8324,7 @@ function renderVencidas(){
       ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
       : `<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarCuotaWA(${r.cxc_idx})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
     const mailBtn = (r.esMant||r.cxc_idx<0) ? '' : `<button class="btn-icon" title="Enviar por correo" onclick="enviarCuotaEmail(${r.cxc_idx})"><i class="ti ti-mail"></i></button>`;
-    return `<tr data-fecha="${toISODate(r.proximoVenc)}">
+    return `<tr data-fecha="${r.vencISO||toISODate(r.proximoVenc)}">
       <td><strong>${r.ref||'—'}</strong></td>
       <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
       <td>${r.concepto||'—'}</td>
