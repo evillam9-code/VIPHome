@@ -5829,9 +5829,7 @@ function renderCxpVencidas(){
   const st={Vencida:'b-red','Por vencer':'b-yellow'};
   tbody.innerHTML=rows.map(r=>{
     const supNombre=r.suplidor||(PD().suplidores||[]).find(s=>String(s.id)===String(r.suplidor_id))?.nombre||'—';
-    const sup=(PD().suplidores||[]).find(s=>s.nombre===supNombre);
     const pagarBtn = canEdit?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxp('${r.key}')"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'';
-    const waBtn = sup&&sup.tel?`<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${sup.tel}','${supNombre.replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`:'';
     return `<tr data-fecha="${toISODate(r.fecha_venc)}">
       <td><strong>${r.factura||'—'}</strong></td>
       <td>${supNombre}</td>
@@ -5840,7 +5838,7 @@ function renderCxpVencidas(){
       <td style="color:var(--danger)"><strong>RD$ ${fmt(r.saldo)}</strong></td>
       <td><small>${r.fecha_venc||'—'}</small></td>
       <td><span class="badge ${st[r.estado]}">${r.estado}</span></td>
-      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
+      <td style="white-space:nowrap">${pagarBtn}</td>
     </tr>`;
   }).join('');
   applyTableFilters('tblCxpVencidas');
@@ -8327,7 +8325,8 @@ function renderVencidas(){
       : (r.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${r.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:'');
     const waBtn = !r.telWA ? '' : r.esMant
       ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
-      : `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="sendWA('${r.telWA}','${(r.cliente||'').replace(/'/g,'')}')"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
+      : `<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarCuotaWA(${r.cxc_idx})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
+    const mailBtn = (r.esMant||r.cxc_idx<0) ? '' : `<button class="btn-icon" title="Enviar por correo" onclick="enviarCuotaEmail(${r.cxc_idx})"><i class="ti ti-mail"></i></button>`;
     return `<tr data-fecha="${toISODate(r.proximoVenc)}">
       <td><strong>${r.ref||'—'}</strong></td>
       <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
@@ -8336,7 +8335,7 @@ function renderVencidas(){
       <td style="color:var(--danger)"><strong>${r.sym} ${fmt(r.saldo||0)}</strong></td>
       <td><small>${r.proximoVenc||'—'}</small></td>
       <td><span class="badge ${st[r.estado]}">${r.estado}${r.estado==='Vencida'&&r.diasAtraso?' · '+r.diasAtraso+'d':''}</span></td>
-      <td style="white-space:nowrap">${pagarBtn}${waBtn}</td>
+      <td style="white-space:nowrap">${pagarBtn}${waBtn}${mailBtn}</td>
     </tr>`;
   }).join('');
   applyTableFilters('tblVencidas');
