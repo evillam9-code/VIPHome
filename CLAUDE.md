@@ -16,9 +16,5 @@
 
 \- No inicie a ejecutar sin haberte dado la aprobación de que todo esta claro y correcto.
 
-
-
-
-
-
+\- No suba el archivo html a GITBUH sin darte la autorización de subirlo, pregunta antes de.
 
