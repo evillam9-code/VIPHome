@@ -2744,6 +2744,13 @@ function PD(){ return currentProject ? currentProject.data : emptyProjectData();
 let proyectosListosResolve;
 const proyectosListos = new Promise(res=>{proyectosListosResolve=res;});
 
+// Copia de los logos que vienen escritos en el código para cada proyecto,
+// tomada ANTES de sincronizar con Firestore — así, si Firestore ya tenía
+// guardada una versión más vieja del proyecto (sin logo todavía), se puede
+// restaurar el logo correcto en vez de perderlo.
+const LOGOS_DEFECTO_PROYECTO={};
+PROYECTOS.forEach(p=>{ if(p.config && p.config.logo) LOGOS_DEFECTO_PROYECTO[p.id]=p.config.logo; });
+
 async function cargarProyectosDesdeFirestore(){
   try{
     const ids = PROYECTOS.map(p=>String(p.id));
@@ -2778,6 +2785,17 @@ async function cargarProyectosDesdeFirestore(){
         if(!PROYECTOS.find(p=>String(p.id)===id)) PROYECTOS.push(loadedById[id]);
       });
     }
+    // Restaura el logo de fábrica en cualquier proyecto que Firestore haya
+    // devuelto sin logo (por ser una versión guardada antes de que existiera
+    // esta función), y guarda el arreglo para que quede así permanentemente.
+    PROYECTOS.forEach(p=>{
+      const logoDefecto=LOGOS_DEFECTO_PROYECTO[p.id];
+      if(logoDefecto && (!p.config || !p.config.logo)){
+        if(!p.config) p.config={};
+        p.config.logo=logoDefecto;
+        guardarProyectoEnFirestore(p);
+      }
+    });
   }catch(e){
     mostrarErrorFirestore('cargar proyectos',e);
   }
