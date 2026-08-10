@@ -1485,7 +1485,7 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg" style="grid-column:1/-1"><label>No. Referencia / Confirmación</label><input id="pago_referencia" placeholder="Ej: TRF-20240101-001"/></div>
       <div class="fg" style="grid-column:1/-1"><label>Comprobante (imagen)</label>
         <input type="file" id="pago_comprobante" accept="image/*,application/pdf" style="padding:6px;border:1px solid var(--border);border-radius:7px;width:100%;font-size:13px;"/>
-        <div id="pago_comp_preview" style="margin-top:8px;display:none;"><img id="pago_comp_img" style="max-width:100%;max-height:120px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="printComprobante()"/></div>
+        <div id="pago_comp_preview" style="margin-top:8px;display:none;"><img id="pago_comp_img" style="max-width:100%;max-height:120px;border-radius:6px;border:1px solid var(--border);cursor:pointer;" onclick="verComprobante(this.src)"/></div>
       </div>
       <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="pago_obs" rows="2"></textarea></div>
     </div>
@@ -1530,6 +1530,11 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg" style="grid-column:1/-1"><label>No. Referencia / Confirmación</label><input id="pm_referencia" placeholder="Ej: TRF-20260101-001"/></div>
       <div class="fg"><label>¿Lleva NCF?</label><select id="pm_ncf" onchange="document.getElementById('pm_numncf').disabled=this.value==='0';if(this.value==='0')document.getElementById('pm_numncf').value='';"><option value="0">No</option><option value="1">Sí</option></select></div>
       <div class="fg"><label>Número NCF</label><input id="pm_numncf" placeholder="B01000..." disabled/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Adjuntar comprobante (transferencia u otro)</label>
+        <input type="file" id="pm_comprobante_file" accept="image/*,.pdf" onchange="handleComprobanteUpload(this,'pm_comprobante')"/>
+        <input type="hidden" id="pm_comprobante" value=""/>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)" id="pm_comprobante_nombre"></div>
+      </div>
       <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="pm_obs" rows="2"></textarea></div>
     </div>
     <input type="hidden" id="pm_apt_no"/><input type="hidden" id="pm_concepto"/><input type="hidden" id="pm_cxc_idx"/>
@@ -1556,6 +1561,20 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
 </div>
 </div>
 
+<!-- Historial de pagos de una cuota de venta/financiamiento -->
+<div class="modal-bg" id="modalHistPagosVenta">
+<div class="modal" style="max-width:560px">
+  <div class="modal-head"><h2 id="hpv_titulo">Historial de pagos</h2><button class="modal-close" onclick="closeModal('modalHistPagosVenta')">×</button></div>
+  <div class="modal-body">
+    <div class="tbl-wrap"><table style="font-size:13px">
+      <thead><tr><th>No. Cuota</th><th>Fecha</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Acciones</th></tr></thead>
+      <tbody id="hpv_tbody"></tbody>
+    </table></div>
+  </div>
+  <div class="modal-foot"><button class="btn btn-outline" onclick="closeModal('modalHistPagosVenta')">Cerrar</button></div>
+</div>
+</div>
+
 <!-- Editar un pago ya registrado (fecha, monto, mora, referencia) -->
 <div class="modal-bg" id="modalEditarPagoMant">
 <div class="modal" style="max-width:460px">
@@ -1566,6 +1585,11 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg"><label>Monto</label><input id="epm_monto" placeholder="0.00" oninput="moneyInput(this)"/></div>
       <div class="fg"><label>Mora</label><input id="epm_mora" placeholder="0.00" oninput="moneyInput(this)"/></div>
       <div class="fg" style="grid-column:1/-1"><label>No. Referencia</label><input id="epm_referencia"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Adjuntar comprobante</label>
+        <input type="file" id="epm_comprobante_file" accept="image/*,.pdf" onchange="handleComprobanteUpload(this,'epm_comprobante')"/>
+        <input type="hidden" id="epm_comprobante" value=""/>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)" id="epm_comprobante_nombre"></div>
+      </div>
       <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="epm_obs" rows="2"></textarea></div>
     </div>
     <input type="hidden" id="epm_cxc_idx"/><input type="hidden" id="epm_pago_idx"/>
@@ -2211,6 +2235,11 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg" style="grid-column:1/-1"><label>No. Referencia / Confirmación</label><input id="pcx_referencia" placeholder="Ej: TRF-20260101-001"/></div>
       <div class="fg"><label>¿Lleva NCF?</label><select id="pcx_ncf" onchange="document.getElementById('pcx_numncf').disabled=this.value==='0';if(this.value==='0')document.getElementById('pcx_numncf').value='';"><option value="0">No</option><option value="1">Sí</option></select></div>
       <div class="fg"><label>Número NCF</label><input id="pcx_numncf" placeholder="B01000..." disabled/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Adjuntar comprobante (transferencia u otro)</label>
+        <input type="file" id="pcx_comprobante_file" accept="image/*,.pdf" onchange="handleComprobanteUpload(this,'pcx_comprobante')"/>
+        <input type="hidden" id="pcx_comprobante" value=""/>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)" id="pcx_comprobante_nombre"></div>
+      </div>
       <div class="fg" style="grid-column:1/-1"><label>Motivo / Observaciones</label><textarea id="pcx_obs" rows="2" placeholder="Motivo del pago"></textarea></div>
     </div>
     <input type="hidden" id="pcx_key"/>
@@ -2246,6 +2275,11 @@ input[type=date].filter{padding:6px 10px;border:1px solid var(--border);border-r
       <div class="fg"><label>Fecha de pago</label><input id="ecx_fecha" type="date"/></div>
       <div class="fg"><label>Monto</label><input id="ecx_monto" placeholder="0.00" oninput="moneyInput(this)"/></div>
       <div class="fg" style="grid-column:1/-1"><label>No. Referencia</label><input id="ecx_referencia"/></div>
+      <div class="fg" style="grid-column:1/-1"><label>Adjuntar comprobante</label>
+        <input type="file" id="ecx_comprobante_file" accept="image/*,.pdf" onchange="handleComprobanteUpload(this,'ecx_comprobante')"/>
+        <input type="hidden" id="ecx_comprobante" value=""/>
+        <div style="margin-top:6px;font-size:12px;color:var(--muted)" id="ecx_comprobante_nombre"></div>
+      </div>
       <div class="fg" style="grid-column:1/-1"><label>Observaciones</label><textarea id="ecx_obs" rows="2"></textarea></div>
     </div>
     <input type="hidden" id="ecx_key"/><input type="hidden" id="ecx_pago_idx"/>
@@ -4616,6 +4650,26 @@ function agregarDescPagoNomina(){
   document.getElementById('nm_desc').value=nueva;
 }
 
+// Abre en una pestaña nueva un comprobante (imagen o PDF) guardado como data URI.
+// Reutilizada por los adjuntos de pagos a suplidores, cuotas de mantenimiento y nómina.
+function verComprobante(dataUri){
+  if(!dataUri)return;
+  const win=window.open('','_blank');
+  if(dataUri.startsWith('data:application/pdf')){
+    win.document.write(`<iframe src="${dataUri}" style="border:none;width:100%;height:100vh;"></iframe>`);
+  } else {
+    win.document.write(`<img src="${dataUri}" style="max-width:100%;display:block;margin:0 auto;"/>`);
+  }
+  win.document.close();
+}
+// Lee un <input type=file> y guarda su contenido como data URI en el campo oculto indicado.
+function handleComprobanteUpload(input,hiddenId){
+  const file=input.files&&input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){ document.getElementById(hiddenId).value=e.target.result; };
+  reader.readAsDataURL(file);
+}
 function verAdjuntoNomina(i){
   const n=STATE.nomina[i];
   if(!n||!n.adjunto)return;
@@ -5063,6 +5117,8 @@ function openPago(i){
   setMoneyVal('pago_monto_mora',0);
   document.getElementById('pago_referencia').value='';
   document.getElementById('pago_obs').value='';
+  document.getElementById('pago_comprobante').value='';
+  document.getElementById('pago_comp_img').src='';
   document.getElementById('pago_comp_preview').style.display='none';
   // populate bancos
   sel=document.getElementById('pago_banco');
@@ -6120,6 +6176,9 @@ function abrirPagoCxp(key){
   document.getElementById('pcx_numncf').value='';
   document.getElementById('pcx_numncf').disabled=true;
   document.getElementById('pcx_obs').value='';
+  document.getElementById('pcx_comprobante_file').value='';
+  document.getElementById('pcx_comprobante').value='';
+  document.getElementById('pcx_comprobante_nombre').textContent='';
   const bsel=document.getElementById('pcx_banco');
   const bancos=(PD().bancos||[]);
   bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
@@ -6146,7 +6205,8 @@ function savePagoCxp(){
     referencia:document.getElementById('pcx_referencia').value,
     ncf:document.getElementById('pcx_ncf').value==='1',
     numncf:document.getElementById('pcx_numncf').value,
-    obs:document.getElementById('pcx_obs').value
+    obs:document.getElementById('pcx_obs').value,
+    comprobante:document.getElementById('pcx_comprobante').value||null
   };
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
@@ -6233,6 +6293,7 @@ function pintarHistorialCxp(key){
       <td>${p.referencia||'—'}</td>
       <td style="white-space:nowrap">
         ${puedeHacer('editar')?`<button class="btn-icon" title="Editar pago" onclick="abrirEditarPagoCxp('${key}',${i})"><i class="ti ti-edit"></i></button>`:''}
+        ${p.comprobante?`<button class="btn-icon" title="Ver comprobante" onclick="verComprobante(${JSON.stringify(p.comprobante)})"><i class="ti ti-paperclip"></i></button>`:''}
         <button class="btn-icon" title="Generar recibo" onclick="generarReciboDesdeHistorialCxp('${key}',${i})"><i class="ti ti-receipt"></i></button>
         ${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoCxp('${key}',${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}
       </td>
@@ -6282,6 +6343,9 @@ function abrirEditarPagoCxp(key,pagoIdx){
   setMoneyVal('ecx_monto',p.monto||0);
   document.getElementById('ecx_referencia').value=p.referencia||'';
   document.getElementById('ecx_obs').value=p.obs||'';
+  document.getElementById('ecx_comprobante_file').value='';
+  document.getElementById('ecx_comprobante').value=p.comprobante||'';
+  document.getElementById('ecx_comprobante_nombre').textContent=p.comprobante?'Comprobante ya adjuntado (seleccione un archivo para reemplazarlo)':'';
   openModal('modalEditarPagoCxp');
 }
 
@@ -6300,6 +6364,7 @@ function guardarEditarPagoCxp(){
   p.monto=nuevoMonto;
   p.referencia=document.getElementById('ecx_referencia').value;
   p.obs=document.getElementById('ecx_obs').value;
+  p.comprobante=document.getElementById('ecx_comprobante').value||null;
   ajustarMovCajaAuto(p.cajaId,nuevoMonto,p.fecha);
   sincronizarPagadoCxp(c);
   const nombre=c.suplidor||c.descripcion||'';
@@ -7396,6 +7461,33 @@ function abrirPagoVenta(ventaIdx){
   if(cxcIdx>=0) abrirPagoCxcIdx(cxcIdx);
 }
 
+// Historial de pagos de una cuota de venta/financiamiento (solo lectura +
+// ver comprobante adjunto — mismo patrón que Mantenimiento y CxP).
+function verHistorialPagosVenta(cxcIdx){
+  const c=(PD().cxc||[])[cxcIdx];
+  if(!c){alert('No se encontró el registro.');return;}
+  document.getElementById('hpv_titulo').textContent='Historial — '+(c.cliente||'—')+(c.concepto?' · '+c.concepto:'');
+  const pagos=(c.pagos||[]);
+  document.getElementById('hpv_tbody').innerHTML=pagos.length?pagos.map(p=>`
+    <tr>
+      <td>${p.ncuota||'—'}</td>
+      <td>${p.fecha||'—'}</td>
+      <td>${fmt(p.total!=null?p.total:p.monto)}</td>
+      <td>${p.metodo||'—'}</td>
+      <td>${p.referencia||'—'}</td>
+      <td style="white-space:nowrap">
+        ${p.comprobante?`<button class="btn-icon" title="Ver comprobante" onclick="verComprobante(${JSON.stringify(p.comprobante)})"><i class="ti ti-paperclip"></i></button>`:''}
+      </td>
+    </tr>`).join('') : '<tr><td colspan="6" class="empty"><i class="ti ti-receipt"></i><p>Sin pagos registrados</p></td></tr>';
+  openModal('modalHistPagosVenta');
+}
+function verHistorialPagosVentaByIdx(ventaIdx){
+  const v=(PD().ventas||[])[ventaIdx];
+  if(!v)return;
+  const cxcIdx=(PD().cxc||[]).findIndex(c=>c.op===v.no);
+  if(cxcIdx>=0) verHistorialPagosVenta(cxcIdx);
+}
+
 function editVentaEstado(i){
   const v = (PD().ventas||[])[i];
   if(!v) return;
@@ -7811,6 +7903,7 @@ function renderVentas(){
         ${v.contrato_no?`<button class="btn-icon" title="Ver contrato" onclick="verContratoVenta(${i})"><i class="ti ti-file-text" style="color:var(--green-dark)"></i></button>`:''}
         <button class="btn-icon" title="Plan de pagos" onclick="verPlanPagosVenta(${i},null)"><i class="ti ti-calendar"></i></button>
         <button class="btn-icon" title="Registrar pago" onclick="abrirPagoVenta(${i})"><i class="ti ti-cash" style="color:var(--green)"></i></button>
+        <button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosVentaByIdx(${i})"><i class="ti ti-history"></i></button>
         <button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarVentaWA(${i})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>
         <button class="btn-icon" title="Enviar por correo" onclick="enviarVentaEmail(${i})"><i class="ti ti-mail"></i></button>
         ${puedeHacer('editar')?`<button class="btn-icon" onclick="editVentaEstado(${i})"><i class="ti ti-edit"></i></button>`:''}
@@ -7978,6 +8071,7 @@ function renderCxcVentas(){
       <td><span class="badge ${st[cx.estado]||'b-gray'}">${cx.estado||'Pendiente'}</span></td>
       <td style="white-space:nowrap">
         ${saldo>0&&cx.cxc_idx>=0?`<button class="btn-icon" title="Registrar pago" onclick="abrirPagoCxcIdx(${cx.cxc_idx})"><i class="ti ti-cash" style="color:var(--green)"></i></button>`:''}
+        ${cx.cxc_idx>=0?`<button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosVenta(${cx.cxc_idx})"><i class="ti ti-history"></i></button>`:''}
         <button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarCuotaWA(${cx.cxc_idx})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>
         <button class="btn-icon" title="Enviar por correo" onclick="enviarCuotaEmail(${cx.cxc_idx})"><i class="ti ti-mail"></i></button>
         ${cx.origen==='manual'&&puedeHacer('eliminar')?`<button class="btn-icon" onclick="deleteCxc(${cx.cxc_idx})" style="color:var(--danger)"><i class="ti ti-trash"></i></button>`:''}
@@ -8164,6 +8258,9 @@ function abrirPagoMant(apt_no,concepto,mes,anio){
   document.getElementById('pm_numncf').value='';
   document.getElementById('pm_numncf').disabled=true;
   document.getElementById('pm_obs').value='';
+  document.getElementById('pm_comprobante_file').value='';
+  document.getElementById('pm_comprobante').value='';
+  document.getElementById('pm_comprobante_nombre').textContent='';
   const bsel=document.getElementById('pm_banco');
   const bancos=(PD().bancos||[]);
   bsel.innerHTML='<option value="">-- Seleccionar cuenta --</option>'+bancos.map(b=>`<option value="${b.id}">${b.banco} · ${b.cuenta} (${b.moneda})</option>`).join('');
@@ -8206,7 +8303,8 @@ function savePagoMant(){
     referencia:document.getElementById('pm_referencia').value,
     ncf:document.getElementById('pm_ncf').value==='1',
     numncf:document.getElementById('pm_numncf').value,
-    obs:document.getElementById('pm_obs').value
+    obs:document.getElementById('pm_obs').value,
+    comprobante:document.getElementById('pm_comprobante').value||null
   };
   pagoMant.cajaId=registrarMovCajaAuto('Entrada','Cobro mantenimiento — Apt. '+apt_no+' ('+concepto+')',total,pagoMant.fecha,'');
   c.pagos_mensuales.push(pagoMant);
@@ -8280,6 +8378,7 @@ function pintarHistorialPagosMant(cxcIdx){
       <td>${p.referencia||'—'}</td>
       <td style="white-space:nowrap">
         ${puedeHacer('editar')?`<button class="btn-icon" title="Editar pago" onclick="abrirEditarPagoMant(${cxcIdx},${i})"><i class="ti ti-edit"></i></button>`:''}
+        ${p.comprobante?`<button class="btn-icon" title="Ver comprobante" onclick="verComprobante(${JSON.stringify(p.comprobante)})"><i class="ti ti-paperclip"></i></button>`:''}
         <button class="btn-icon" title="Generar recibo" onclick="generarReciboDesdeHistorial(${cxcIdx},${i})"><i class="ti ti-receipt"></i></button>
         ${puedeHacer('eliminar')?`<button class="btn-icon" title="Revertir pago" onclick="revertirPagoMant(${cxcIdx},${i})" style="color:var(--danger)"><i class="ti ti-rotate-2"></i></button>`:''}
       </td>
@@ -8300,6 +8399,9 @@ function abrirEditarPagoMant(cxcIdx,pagoIdx){
   setMoneyVal('epm_mora',p.mora||0);
   document.getElementById('epm_referencia').value=p.referencia||'';
   document.getElementById('epm_obs').value=p.obs||'';
+  document.getElementById('epm_comprobante_file').value='';
+  document.getElementById('epm_comprobante').value=p.comprobante||'';
+  document.getElementById('epm_comprobante_nombre').textContent=p.comprobante?'Comprobante ya adjuntado (seleccione un archivo para reemplazarlo)':'';
   openModal('modalEditarPagoMant');
 }
 
@@ -8319,6 +8421,7 @@ function guardarEditarPagoMant(){
   p.monto=nuevoMonto; p.mora=nuevaMora; p.total=nuevoTotal;
   p.referencia=document.getElementById('epm_referencia').value;
   p.obs=document.getElementById('epm_obs').value;
+  p.comprobante=document.getElementById('epm_comprobante').value||null;
   ajustarMovCajaAuto(p.cajaId,nuevoTotal,p.fecha);
   addLog('Editó pago mantenimiento Apt. '+c.op+' ('+c.concepto+') '+p.mes+' '+(p.anio||''));
   closeModal('modalEditarPagoMant');
@@ -8511,6 +8614,9 @@ function renderVencidas(){
       ? `<button class="btn-icon" title="Recordatorio WhatsApp" onclick="enviarRecordatorioMant('${r.apt_no}','${r.concepto_base}','${r.mes}',${r.anio})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`
       : `<button class="btn-icon" title="Enviar por WhatsApp" onclick="enviarCuotaWA(${r.cxc_idx})"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i></button>`;
     const mailBtn = (r.esMant||r.cxc_idx<0) ? '' : `<button class="btn-icon" title="Enviar por correo" onclick="enviarCuotaEmail(${r.cxc_idx})"><i class="ti ti-mail"></i></button>`;
+    const histBtn = r.esMant
+      ? `<button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosMant('${r.apt_no}','${r.concepto_base}')"><i class="ti ti-history"></i></button>`
+      : (r.cxc_idx>=0?`<button class="btn-icon" title="Historial de pagos" onclick="verHistorialPagosVenta(${r.cxc_idx})"><i class="ti ti-history"></i></button>`:'');
     return `<tr data-fecha="${r.vencISO||toISODate(r.proximoVenc)}">
       <td><strong>${r.ref||'—'}</strong></td>
       <td>${r.cliente||'—'}<br><small style="color:var(--muted)">${r.clienteDoc||''}</small></td>
@@ -8519,7 +8625,7 @@ function renderVencidas(){
       <td style="color:var(--danger)"><strong>${r.sym} ${fmt(r.saldo||0)}</strong></td>
       <td><small>${r.proximoVenc||'—'}</small></td>
       <td><span class="badge ${st[r.estado]}">${r.estado}${r.estado==='Vencida'&&r.diasAtraso?' · '+r.diasAtraso+'d':''}</span></td>
-      <td style="white-space:nowrap">${pagarBtn}${waBtn}${mailBtn}</td>
+      <td style="white-space:nowrap">${pagarBtn}${histBtn}${waBtn}${mailBtn}</td>
     </tr>`;
   }).join('');
   applyTableFilters('tblVencidas');
