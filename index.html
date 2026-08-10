@@ -3554,15 +3554,7 @@ function exportarInformeGeneral(){
   const egresos=egresosGastos+egresosNomina;
   const balance=ingresos-egresos;
 
-  const eom=[31,(anio%4===0&&(anio%100!==0||anio%400===0))?29:28,31,30,31,30,31,31,30,31,30,31];
   const mesIdx=mes?MESES_ES.indexOf(mes):11;
-  const corte=`${anio}-${String(mesIdx+1).padStart(2,'0')}-${String(eom[mesIdx]).padStart(2,'0')}`;
-  let cobradoTotal=0;
-  (PD().cxc||[]).forEach(c=>(c.pagos_mensuales||[]).forEach(p=>{ if((p.fecha||'')<=corte) cobradoTotal+=(p.total||p.monto||0); }));
-  const gastadoTotal=(PD().gastos||[]).filter(g=>g.pagado&&(toISODate(g.fecha)||'')<=corte).reduce((s,g)=>s+g.monto+g.itbis,0)
-    + (PD().nomina||[]).filter(n=>(toISODate(n.fecha)||'')<=corte).reduce((s,n)=>s+(n.monto||0),0);
-  const fondoTotal=cobradoTotal-gastadoTotal;
-
   const mm=String(mesIdx+1).padStart(2,'0');
   const vencidasCxp=buildVencidasCxpRows().filter(r=>r.estado==='Vencida').filter(r=>{
     const fv=r.fecha_venc||''; return fv.slice(0,4)===String(anio) && (!mes||fv.slice(5,7)===mm);
@@ -3577,20 +3569,12 @@ function exportarInformeGeneral(){
   const st={Vencida:'b-red','Por vencer':'b-yellow',Pendiente:'b-blue',Pagada:'b-green'};
   const periodoLbl = mes ? `${mes} ${anio}` : `Año ${anio}`;
 
-  // Resumen del Sistema: foto general del proyecto (no solo el período), para
-  // dar contexto de tamaño y salud general junto al resumen financiero.
-  const apts=PD().apartamentos||[];
-  const habitados=apts.filter(a=>a.estado==='Habitado').length;
-  const saldoBancario=(PD().bancos||[]).reduce((s,b)=>s+(b.saldo||0),0);
-  const saldoCaja=(PD().caja||[]).reduce((s,m)=>s+(m.tipo==='Entrada'?m.monto:-m.monto),0);
-  const totalSuplidores=(PD().suplidores||[]).length;
-  const totalEmpleados=(PD().empleados||[]).filter(e=>e.estado==='Activo').length;
-
-  const huboBeneficio=balance>=0;
-
   const filaCargo=r=>`<tr><td>${r.apt_no}</td><td>${r.cliente||'—'}</td><td>${r.concepto}</td><td>RD$ ${fmt(r.monto)}</td><td><span class="badge ${st[r.estado]||'b-gray'}">${r.estado}</span></td></tr>`;
-  const filaGasto=g=>`<tr><td>${g.fecha}</td><td>${(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—'}</td><td>${g.descripcion}</td><td>RD$ ${fmt(g.monto+g.itbis)}</td><td><span class="badge ${g.pagado?'b-green':'b-yellow'}">${g.pagado?'Pagado':'Pendiente'}</span></td></tr>`;
-  const filaNomina=n=>`<tr><td>${n.fecha}</td><td>${n.nombre}</td><td>${n.descripcion||'—'}</td><td>RD$ ${fmt(n.monto)}</td></tr>`;
+  const egresosDetalle=[
+    ...gastosPeriodo.filter(g=>g.pagado).map(g=>({fecha:g.fecha,tipo:'Gasto',quien:(PD().suplidores||[]).find(s=>String(s.id)===String(g.suplidor_id))?.nombre||'—',desc:g.descripcion,monto:g.monto+g.itbis})),
+    ...nominaPeriodo.map(n=>({fecha:n.fecha,tipo:'Nómina',quien:n.nombre,desc:n.descripcion||'—',monto:n.monto}))
+  ];
+  const filaEgreso=e=>`<tr><td>${e.fecha}</td><td>${e.tipo}</td><td>${e.quien}</td><td>${e.desc}</td><td>RD$ ${fmt(e.monto)}</td></tr>`;
 
   // Se exporta como .doc (HTML con namespaces de Word) — se descarga directo,
   // sin ventana emergente ni bloqueador de pop-ups de por medio.
@@ -3631,40 +3615,23 @@ function exportarInformeGeneral(){
   </div>
   <div class="meta"><span>Generado por: <strong>${usuario}</strong></span><span>Fecha de generación: ${fechaGen}</span></div>
 
-  <h2 class="sec">Resumen del Sistema</h2>
-  <div class="resumen">
-    <div class="rc"><div class="rc-lbl">Unidades habitadas</div><div class="rc-val">${habitados} de ${apts.length}</div></div>
-    <div class="rc"><div class="rc-lbl">Saldo bancario total</div><div class="rc-val">RD$ ${fmt(saldoBancario)}</div></div>
-    <div class="rc"><div class="rc-lbl">Saldo en Caja</div><div class="rc-val">RD$ ${fmt(saldoCaja)}</div></div>
-    <div class="rc"><div class="rc-lbl">Suplidores registrados</div><div class="rc-val">${totalSuplidores}</div></div>
-    <div class="rc"><div class="rc-lbl">Empleados activos</div><div class="rc-val">${totalEmpleados}</div></div>
-    <div class="rc"><div class="rc-lbl">Fondo de Reserva (acum. a ${periodoLbl})</div><div class="rc-val">RD$ ${fmt(fondoTotal)}</div></div>
-  </div>
-
-  <h2 class="sec">Resumen General — ${periodoLbl}</h2>
+  <h2 class="sec">Resumen — ${periodoLbl}</h2>
   <div class="resumen">
     <div class="rc"><div class="rc-lbl">Ingresos</div><div class="rc-val" style="color:#1a7d3a">RD$ ${fmt(ingresos)}</div></div>
     <div class="rc"><div class="rc-lbl">Egresos</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(egresos)}</div></div>
-    <div class="rc"><div class="rc-lbl">Balance</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
-    <div class="rc"><div class="rc-lbl">Cuotas Vencidas</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
+    <div class="rc"><div class="rc-lbl">Beneficio</div><div class="rc-val" style="color:${balance>=0?'#1a7d3a':'#b91c1c'}">RD$ ${fmt(balance)}</div></div>
+    <div class="rc"><div class="rc-lbl">Cuotas Vencidas (CxC)</div><div class="rc-val" style="color:#b91c1c">${vencidasCxc.length} · RD$ ${fmt(vencidasCxc.reduce((s,r)=>s+r.monto,0))}</div></div>
     <div class="rc"><div class="rc-lbl">CxP Vencido</div><div class="rc-val" style="color:#b91c1c">RD$ ${fmt(totalVencidoCxp)}</div></div>
-    <div class="rc"><div class="rc-lbl">Pendiente por cobrar</div><div class="rc-val">RD$ ${fmt(pendCobro)}</div></div>
-  </div>
-  <div class="beneficio ${huboBeneficio?'beneficio-si':'beneficio-no'}">
-    ${huboBeneficio?'✅ SÍ hubo beneficio en este período':'⚠️ NO hubo beneficio en este período'} — Balance: RD$ ${fmt(balance)} (Gastos: RD$ ${fmt(egresosGastos)} · Nómina: RD$ ${fmt(egresosNomina)})
+    <div class="rc"><div class="rc-lbl">Pendiente por Cobrar</div><div class="rc-val">RD$ ${fmt(pendCobro)}</div></div>
   </div>
 
-  <h2 class="sec">Detalle de Cobros (${cargos.length})</h2>
+  <h2 class="sec">Detalle de Ingresos (${cargos.length})</h2>
   <table><thead><tr><th>Unidad</th><th>Cliente</th><th>Concepto</th><th>Monto</th><th>Estado</th></tr></thead>
   <tbody>${cargos.length?cargos.map(filaCargo).join(''):'<tr><td colspan="5">Sin cargos configurados en este período.</td></tr>'}</tbody></table>
 
-  <h2 class="sec">Detalle de Gastos (${gastosPeriodo.length})</h2>
-  <table><thead><tr><th>Fecha</th><th>Suplidor</th><th>Descripción</th><th>Total</th><th>Estado</th></tr></thead>
-  <tbody>${gastosPeriodo.length?gastosPeriodo.map(filaGasto).join(''):'<tr><td colspan="5">Sin gastos registrados en este período.</td></tr>'}</tbody></table>
-
-  <h2 class="sec">Detalle de Nómina (${nominaPeriodo.length})</h2>
-  <table><thead><tr><th>Fecha</th><th>Beneficiario</th><th>Descripción</th><th>Monto</th></tr></thead>
-  <tbody>${nominaPeriodo.length?nominaPeriodo.map(filaNomina).join(''):'<tr><td colspan="4">Sin pagos de nómina en este período.</td></tr>'}</tbody></table>
+  <h2 class="sec">Detalle de Egresos (${egresosDetalle.length})</h2>
+  <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Suplidor / Beneficiario</th><th>Descripción</th><th>Monto</th></tr></thead>
+  <tbody>${egresosDetalle.length?egresosDetalle.map(filaEgreso).join(''):'<tr><td colspan="5">Sin egresos registrados en este período.</td></tr>'}</tbody></table>
 
   <div class="footer">© ${new Date().getFullYear()} ${getCompanyName()}${getCompanyName()!==proj?' — '+proj:''} — Informe generado por ${usuario} el ${fechaGen}</div>
   </body></html>`;
